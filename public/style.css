@@ -35,7 +35,7 @@ body {
 .topbar { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; padding: 34px 40px 22px; border-bottom: 1px solid var(--hair); }
 .brand { font-family: var(--logo); font-size: 1.85rem; font-weight: 600; letter-spacing: .02em; }
 .brand .beta { font-family: var(--body); font-style: italic; font-weight: 400; font-size: .4em; letter-spacing: .01em; color: var(--faint); vertical-align: .5em; margin-left: 7px; text-transform: none; }
-.brand-sub { color: var(--faint); font-style: italic; font-size: .98rem; margin-top: 6px; }
+.brand-sub { font-family: var(--head); color: var(--faint); font-style: italic; font-size: .98rem; margin-top: 6px; }
 
 /* theme switcher */
 .theme { position: relative; flex: 0 0 auto; }
