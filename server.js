@@ -105,13 +105,13 @@ app.post('/api/autolabel', async (req, res) => {
 
 // --- Build the font from labels + controls ------------------------------------
 app.post('/api/build', async (req, res) => {
-  const { sid, labels, name, weight, slant, spacing, formats, edgeSmooth } = req.body || {};
+  const { sid, labels, name, weight, width, slant, spacing, formats, edgeSmooth } = req.body || {};
   if (!sid) return res.status(400).json({ error: 'Missing session.' });
   const dir = sessionDir(sid);
   if (!fs.existsSync(path.join(dir, 'blobs.json'))) return res.status(404).json({ error: 'Segment first.' });
   const outDir = path.join(dir, 'out');
   try {
-    const result = await buildFont(dir, labels || {}, { name, weight, slant, spacing, formats, edgeSmooth }, outDir);
+    const result = await buildFont(dir, labels || {}, { name, weight, width, slant, spacing, formats, edgeSmooth }, outDir);
     const urlBase = `/work/${sid}/out/`;
     res.json({
       ...result,
