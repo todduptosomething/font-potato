@@ -86,7 +86,9 @@ class FontBuilder {
     const shear = Math.tan((slantDeg * Math.PI) / 180);
     const fineness = clamp(opts.detail == null ? 75 : opts.detail, 0, 100) / 100;
     const traceDetail = 1 - fineness;
-    const fillIters = Math.round(6 * (1 - fineness));
+    // 7 possible gap-fill amounts (6..0), bucketed into 7 equal-width slices of
+    // the slider — see lib/fontbuild.js for why (naive rounding bunched unevenly).
+    const fillIters = 6 - Math.min(6, Math.floor(fineness * 7));
 
     const { entries, target, seen } = await this._entries();
     const traceKey = JSON.stringify([weight, smooth, traceDetail, fillIters]);
