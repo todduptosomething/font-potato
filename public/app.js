@@ -117,6 +117,7 @@ function scheduleBuild() {
 async function build() {
   const labels = activeLabels();
   if (!Object.keys(labels).length) { $('previewSample').textContent = 'Label at least one letter to see your font…'; return; }
+  if (!$('fontName').value.trim()) { status('buildStatus', 'Name your font before building.', 'err'); return; }
   status('buildStatus', 'Baking font…', '');
   try {
     const res = await fetch('/api/build', {

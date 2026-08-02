@@ -120,7 +120,7 @@ app.post('/api/build', async (req, res) => {
       urlBase,
     });
   } catch (err) {
-    const status = err.code === 'NO_GLYPHS' ? 400 : 500;
+    const status = (err.code === 'NO_GLYPHS' || err.code === 'NO_NAME') ? 400 : 500;
     res.status(status).json({ error: err.message || String(err) });
   }
 });
