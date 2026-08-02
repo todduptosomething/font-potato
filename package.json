@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "build:vendor": "esbuild build/vendor-entry.js --bundle --minify --platform=browser --format=esm --define:global=window --outfile=public/engine/vendor.js"
   },
   "keywords": [
     "handwriting",
@@ -27,5 +28,8 @@
     "multer": "^2.2.0",
     "opentype.js": "^2.0.0",
     "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
   }
 }
