@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Font Potato</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="brand">Font Potato<span class="beta">beta</span></div>
+      <div class="brand-sub">Handwriting for the lazy ones.</div>
+    </div>
+    <div class="theme">
+      <button id="themeBtn" class="theme-btn" aria-haspopup="true" aria-expanded="false">Theme ▾</button>
+      <div id="themeMenu" class="theme-menu" hidden role="menu">
+        <button data-theme="russet" role="menuitem"><span class="sw" style="background:#FCFBF0;color:#301F1E"></span>Russet</button>
+        <button data-theme="sweet" role="menuitem"><span class="sw" style="background:#E48948;color:#FBF8F7"></span>Sweet</button>
+        <button data-theme="yukon" role="menuitem"><span class="sw" style="background:#E4C155;color:#483C32"></span>Yukon</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- LEFT: template + scan + letters ----------------------------------->
+    <section class="panel" id="leftPanel">
+      <h2>The template</h2>
+      <p class="lead">Print it, write one letter per box with a dark pen, then photograph the whole sheet — flat, evenly lit, all four corner marks visible. The marks let the app read every letter precisely. It covers all 94 keyboard characters.</p>
+
+      <button id="downloadTpl" class="btn solid wide" style="margin-top:0">Download template PDF</button>
+
+      <h2>Your filled-in sheet</h2>
+      <div id="tplDrop" class="drop">
+        <input id="tplFile" type="file" accept="image/*" hidden />
+        <p><strong>Drop the photo</strong> of your filled template<br />or <button type="button" id="tplBrowse" class="link">browse</button></p>
+        <p class="fine">JPG · PNG · HEIC</p>
+      </div>
+      <button id="scanTplBtn" class="btn solid wide" disabled>Read template</button>
+      <div id="tplStatus" class="status" hidden></div>
+
+      <div id="labelArea" hidden>
+        <h2>Captured</h2>
+        <p class="fine" id="labelHint">Each box maps to its character by position — nothing to fix. Shown only so you can spot a box that scanned badly or came out blank. (Draw any symbol in a box and it becomes that key — so this makes symbol fonts too.)</p>
+        <div id="cropGrid" class="crop-grid"></div>
+      </div>
+    </section>
+
+    <!-- RIGHT: studio ----------------------------------------------------->
+    <section class="panel" id="studioPanel" hidden>
+      <h2>Shape the typeface</h2>
+      <label class="field"><span>Font name</span><input id="fontName" type="text" value="My Handwriting" /></label>
+
+      <div class="sliders">
+        <label class="ctl"><span>Weight <em id="weightVal">0</em></span><input id="weight" type="range" min="-2" max="2" step="1" value="0" /></label>
+        <label class="ctl"><span>Smoothness <em id="smoothVal">1.0</em></span><input id="smooth" type="range" min="0" max="2" step="0.1" value="1" /></label>
+        <label class="ctl"><span>Slant <em id="slantVal">0°</em></span><input id="slant" type="range" min="-20" max="20" step="1" value="0" /></label>
+        <label class="ctl"><span>Detail <em id="detailVal">75</em></span><input id="detail" type="range" min="0" max="100" step="5" value="75" /></label>
+      </div>
+      <div id="buildStatus" class="status" hidden></div>
+
+      <h2>Preview</h2>
+      <div class="preview-tools">
+        <input id="previewText" type="text" value="When did ex-members of the Royal Potato Guild masquerade at Jerky Scoop Mill? After dazzling the friggin' vampires." />
+        <label class="size">Size <input id="previewSize" type="range" min="28" max="140" step="2" value="48" /></label>
+      </div>
+      <div id="previewBox" class="preview-box"><span id="previewSample">Read a template to begin…</span></div>
+      <div id="missingNote" class="fine" hidden></div>
+
+      <h2>Download</h2>
+      <div id="downloads" class="downloads"></div>
+
+      <h2>Share</h2>
+      <label class="optin">
+        <input type="checkbox" id="optIn" />
+        <span>Let Font Potato use samples of your font for our gallery and marketing. We make images of sample sentences in your font — never your font file, and never your uploaded photo.</span>
+      </label>
+      <div id="optInStatus" class="fine" style="margin-top:8px"></div>
+
+      <p class="fine" style="margin-top:22px">Made something fun with your font — a note, a poster, a doodle? Show us. It might inspire someone else.</p>
+      <textarea id="madeMsg" rows="3" placeholder="Tell us what you made (optional)"></textarea>
+      <div class="made-row">
+        <input id="madeEmail" type="text" placeholder="your email (optional — only if you'd like a reply)" />
+        <label class="btn attach">Attach a photo<input id="madeFile" type="file" accept="image/*" hidden /></label>
+      </div>
+      <div class="made-actions">
+        <button id="madeSendBtn" class="btn solid">Send to Font Potato</button>
+        <span id="madeStatus" class="fine"></span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p class="built">Built by <a href="https://linkedin.com/in/hey-todd-turner" target="_blank" rel="noopener">Todd Turner</a> and <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a></p>
+    <p class="credits">
+      Powered by
+      <a href="https://github.com/danilo-znamerovszkij/draw-your-font" target="_blank" rel="noopener">draw-your-font</a>,
+      <a href="https://potrace.sourceforge.net/" target="_blank" rel="noopener">Potrace</a>,
+      <a href="https://opentype.js.org/" target="_blank" rel="noopener">opentype.js</a>,
+      <a href="https://harfbuzz.github.io/" target="_blank" rel="noopener">HarfBuzz</a>,
+      <a href="https://sharp.pixelplumbing.com/" target="_blank" rel="noopener">sharp</a>, and
+      <a href="https://pdfkit.org/" target="_blank" rel="noopener">PDFKit</a>.
+      Set in <a href="https://fonts.google.com/specimen/Spectral" target="_blank" rel="noopener">Spectral</a>
+      &amp; <a href="https://fonts.google.com/specimen/Karla" target="_blank" rel="noopener">Karla</a>
+      (Open Font License). Your fonts and photos stay on your device.
+    </p>
+  </footer>
+
+  <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyMsg">Working…</span></div>
+  <script src="app.js"></script>
+</body>
+</html>

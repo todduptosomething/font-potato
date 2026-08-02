@@ -1,0 +1,31 @@
+{
+  "name": "font-potato",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "handwriting",
+    "font",
+    "ttf",
+    "woff",
+    "draw-your-font"
+  ],
+  "license": "GPL-2.0-or-later",
+  "description": "Local web studio for turning a photo of your handwriting into a font, with live thickness/slant/width/contrast controls. Wraps the draw-your-font engine.",
+  "dependencies": {
+    "@fontsource/karla": "^5.3.0",
+    "@fontsource/spectral": "^5.3.0",
+    "@fontsource/spectral-sc": "^5.3.0",
+    "draw-your-font": "^0.1.0",
+    "express": "^5.2.1",
+    "harfbuzzjs": "^1.4.0",
+    "heic-convert": "^2.1.0",
+    "multer": "^2.2.0",
+    "opentype.js": "^2.0.0",
+    "sharp": "^0.35.3"
+  }
+}
