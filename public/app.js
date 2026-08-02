@@ -88,9 +88,12 @@ const bind = (id, valId, fmt) => {
   el.addEventListener('input', () => { if (valId) $(valId).textContent = fmt ? fmt(el.value) : el.value; scheduleBuild(); });
 };
 bind('weight', 'weightVal');
-bind('smooth', 'smoothVal', (v) => Number(v).toFixed(1));
 bind('slant', 'slantVal', (v) => `${v}°`);
-bind('detail', 'detailVal'); // higher = more detail (matches the other sliders)
+bind('edgeSmooth', 'edgeSmoothVal', (v) => (Number(v) / 10).toFixed(1));
+// 'width' is not wired up yet — naive horizontal scaling would distort stroke
+// weight (thin when condensed, fat when expanded). Needs a stroke-preserving
+// implementation before it affects the build.
+bind('width', 'widthVal', (v) => Number(v).toFixed(2));
 $('fontName').addEventListener('input', scheduleBuild);
 $('previewText').addEventListener('input', updateSample);
 $('previewSize').addEventListener('input', (e) => ($('previewSample').style.fontSize = e.target.value + 'px'));
@@ -123,8 +126,8 @@ async function build() {
       body: JSON.stringify({
         sid: state.sid, labels,
         name: $('fontName').value,
-        weight: $('weight').value, smooth: $('smooth').value,
-        slant: $('slant').value, detail: $('detail').value,
+        weight: $('weight').value,
+        slant: $('slant').value, edgeSmooth: $('edgeSmooth').value,
       }),
     });
     const data = await res.json();
