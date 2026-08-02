@@ -88,7 +88,8 @@ const bind = (id, valId, fmt) => {
   el.addEventListener('input', () => { if (valId) $(valId).textContent = fmt ? fmt(el.value) : el.value; scheduleBuild(); });
 };
 bind('weight', 'weightVal');
-bind('width', 'widthVal', (v) => Number(v).toFixed(2));
+const WIDTH_LABELS = ['Condensed', 'Regular', 'Wide'];
+bind('width', 'widthVal', (v) => WIDTH_LABELS[v]);
 bind('slant', 'slantVal', (v) => `${v}°`);
 bind('edgeSmooth', 'edgeSmoothVal', (v) => (Number(v) / 10).toFixed(1));
 $('fontName').addEventListener('input', scheduleBuild);
