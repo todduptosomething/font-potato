@@ -44,9 +44,11 @@ function layout(chars) {
   const rows = Math.ceil(chars.length / cols);
   const cw = (GRID.x1 - GRID.x0) / cols;
   const ch = (GRID.y1 - GRID.y0) / rows;
-  const INSET_X = 0.1;
-  const INSET_TOP = 0.06;
-  const INSET_BOT = 0.06;
+  // Kept in sync with lib/templategeo.js — just enough to clear the printed
+  // 0.6pt cell border, not eat into the drawing area and clip descenders.
+  const INSET_X = 0.025;
+  const INSET_TOP = 0.025;
+  const INSET_BOT = 0.025;
 
   const cells = chars.map((char, index) => {
     const col = index % cols;
