@@ -6,14 +6,12 @@
   "buildCommand": "echo 'nothing to build — public/ is prebuilt and committed'",
   "headers": [
     {
-      "//": "no-cache means 'ask every time', NOT 'never store' — the browser keeps the file and a 304 costs a round trip with no body. Worth it: these filenames aren't content-hashed, so a stored copy would let a returning visitor run new app.js against hour-old engine modules after a deploy, and a font built from a half-updated pipeline is wrong in ways nobody would report as a bug. Worker scripts cache especially stubbornly, which is exactly how a working Width slider looked broken.",
       "source": "/engine/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache" }
       ]
     },
     {
-      "//": "Same reasoning: app.js and the page that loads it must never lag behind the engine.",
       "source": "/(index.html|app.js|consent.js|style.css)",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache" }

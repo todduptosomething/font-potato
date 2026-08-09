@@ -112,6 +112,23 @@ the settings in `vercel.json` are all it needs: output directory `public`, no
 build and no install command. The prebuilt bundles and the template PDF are
 committed, so a deploy is a file copy.
 
+**`vercel.json` cannot hold comments.** Not `//` lines, and not `"//"` keys
+either — Vercel validates the file against a strict schema and rejects any
+property it doesn't recognise, failing the deploy before the build starts
+(`headers[0] should NOT have additional property //`). Explanations for what's
+in there go here instead:
+
+- **`/engine/*`, `index.html`, `app.js`, `consent.js`, `style.css` are sent
+  `Cache-Control: no-cache`.** That means "revalidate every time", not "never
+  store" — the browser keeps its copy and a 304 costs a round trip with no
+  body. These filenames aren't content-hashed, so a stored copy lets a
+  returning visitor pair a fresh `app.js` with stale engine modules after a
+  deploy, and a font built from a half-updated pipeline is wrong in ways
+  nobody would think to report as a bug. Worker scripts cache especially
+  stubbornly — that's what makes a working change look like it didn't ship.
+- **`/fonts/*` is cached for a year, immutable.** Those files genuinely never
+  change; a new face gets a new filename.
+
 Mailing-list signups, contact messages and opt-in samples go straight from the
 browser to Supabase (`public/engine/collect.js`). The key in that file is the
 *publishable* key and is meant to be public: every table has an INSERT policy
