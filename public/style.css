@@ -239,10 +239,15 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .guide-img-size { aspect-ratio: 1520.67 / 858.16; mask: url('/img/guide-size.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-size.svg') center / contain no-repeat; }
 .guide-img-bounds { aspect-ratio: 1511.81 / 716.34; mask: url('/img/guide-bounds.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-bounds.svg') center / contain no-repeat; }
 .guide-labels { display: flex; margin-top: 4px; }
-.guide-labels span { flex: 1; text-align: center; font-weight: 700; }
+/* The two display faces, used here regardless of theme — the labels are
+   shouting, and a marker and a pen shout better than a book serif does.
+   Weight stays 400 because both faces are single-weight; asking for bold
+   would only get a synthesised one. Sized up slightly since informal faces
+   run small next to Spectral at the same pixel size. */
+.guide-labels span { flex: 1; text-align: center; font-weight: 400; font-size: 1.35rem; line-height: 1.1; }
 /* Placeholder styling — real yes/no web fonts will replace these once supplied. */
-.guide-yes { color: #2f7a3d; }
-.guide-no { color: var(--err); }
+.guide-yes { color: #2f7a3d; font-family: 'Lilian Marker', var(--head); }
+.guide-no { color: var(--err); font-family: 'Roger Pen', var(--head); }
 @media (max-width: 560px) { .guide-row { flex-direction: column; max-width: 260px; } }
 
 /* drop zone */
