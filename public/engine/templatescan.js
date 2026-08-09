@@ -89,11 +89,52 @@ function findMarkers(gray, W, H) {
   return { TL, TR, BL, BR };
 }
 
+// True perspective transform (homography) from the unit square onto the quad
+// the four markers describe.
+//
+// This used to interpolate in straight lines between the markers, which is
+// only correct when the camera is exactly square-on to the paper. Photograph
+// a sheet at any angle — as everyone does, holding a phone over a desk — and
+// a real perspective view is not linear: equal steps across the page are not
+// equal steps across the photo. Straight-line interpolation pins the four
+// corners perfectly and drifts everywhere in between, worst in the MIDDLE of
+// the sheet, which is why a cell in row 5 could sit far enough off its
+// printed box to reach into the box below and pick up its printed hint.
+//
+// A homography is the correct model for a flat surface seen by a camera. It
+// still matches the four markers exactly, but every point between them lands
+// where it actually is, so a cell's scan region covers its own printed box
+// and nothing else — which is the whole reason for putting markers on the
+// page. Standard unit-square-to-quad formulation (Heckbert): the corners map
+// (0,0)->TL, (1,0)->TR, (1,1)->BR, (0,1)->BL.
 function makeMapper({ TL, TR, BL, BR }) {
+  const [x0, y0] = TL, [x1, y1] = TR, [x2, y2] = BR, [x3, y3] = BL;
+
+  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
+  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
+
+  let a, b, c, d, e, f, g, h;
+  if (dx3 === 0 && dy3 === 0) {
+    // The quad is a parallelogram: no perspective, so the affine case is exact
+    // (and avoids dividing by a determinant that is zero here).
+    a = x1 - x0; b = x2 - x1; c = x0;
+    d = y1 - y0; e = y2 - y1; f = y0;
+    g = 0; h = 0;
+  } else {
+    const den = dx1 * dy2 - dy1 * dx2;
+    g = (dx3 * dy2 - dy3 * dx2) / den;
+    h = (dx1 * dy3 - dy1 * dx3) / den;
+    a = x1 - x0 + g * x1;
+    b = x3 - x0 + h * x3;
+    c = x0;
+    d = y1 - y0 + g * y1;
+    e = y3 - y0 + h * y3;
+    f = y0;
+  }
+
   return (u, v) => {
-    const top = lerp(TL, TR, u);
-    const bot = lerp(BL, BR, u);
-    return lerp(top, bot, v);
+    const w = g * u + h * v + 1;
+    return [(a * u + b * v + c) / w, (d * u + e * v + f) / w];
   };
 }
 
@@ -160,75 +201,20 @@ function stripHintBlob(ink, W, H, hx0, hy0, hx1, hy1) {
   }
 }
 
-// Drop small ink blobs far from the main glyph — cross-cell bleed from a
-// neighboring box creeping in at the inset boundary. Left alone, a stray
-// fleck stretches the tight crop bbox way past the real letter, so the letter
-// then places as if it filled only a sliver of its box and renders tiny.
-// Only a blob both clearly smaller than AND clearly separated from the main
-// mass is dropped, so i-dots, colons and crossbars survive.
-function dropFarStrays(ink, W, H) {
-  const seen = new Uint8Array(W * H);
-  const stack = new Int32Array(W * H);
-  const blobs = [];
-  for (let s = 0; s < ink.length; s++) {
-    if (!ink[s] || seen[s]) continue;
-    let sp = 0, n = 0;
-    const members = [];
-    let bx0 = W, by0 = H, bx1 = -1, by1 = -1;
-    stack[sp++] = s; seen[s] = 1;
-    while (sp) {
-      const p = stack[--sp]; members.push(p); n++;
-      const x = p % W, y = (p / W) | 0;
-      if (x < bx0) bx0 = x; if (x > bx1) bx1 = x;
-      if (y < by0) by0 = y; if (y > by1) by1 = y;
-      if (x > 0 && ink[p - 1] && !seen[p - 1]) { seen[p - 1] = 1; stack[sp++] = p - 1; }
-      if (x < W - 1 && ink[p + 1] && !seen[p + 1]) { seen[p + 1] = 1; stack[sp++] = p + 1; }
-      if (y > 0 && ink[p - W] && !seen[p - W]) { seen[p - W] = 1; stack[sp++] = p - W; }
-      if (y < H - 1 && ink[p + W] && !seen[p + W]) { seen[p + W] = 1; stack[sp++] = p + W; }
-    }
-    blobs.push({ members, n, bx0, by0, bx1, by1 });
-  }
-  if (blobs.length < 2) return;
-  const main = blobs.reduce((a, b) => (b.n > a.n ? b : a));
-  const gapThresh = 0.20 * Math.min(W, H);
-  // The commonest intruder is the PRINTED hint from the next box down. Each
-  // cell masks its own hint (see stripHintBlob), but nothing masks a
-  // neighbour's, and the hint is deliberately real black ink so a person can
-  // read it — so when the rectified grid drifts by a hair, the top of the
-  // hint below lands inside the bottom of this cell and survives
-  // thresholding. Observed as an 'i' carrying the tip of the 'q' printed in
-  // the box beneath it, which then stretched the crop and wrecked the
-  // letter's advance width.
-  //
-  // The size rule below can't catch it: it keeps anything ≥25% of the main
-  // mass precisely so an i's dot survives, and an i is a thin stem, so a
-  // sliver clears that bar easily. The guard built to protect the dot is what
-  // waves the intruder through.
-  //
-  // The edge is what separates them. A letter's own detached parts — the dot
-  // on an i or j, the two of a colon, the bar of an = — sit inside the box
-  // with air around them. Anything arriving from outside crosses the boundary
-  // to get here, so it runs off the edge: a fragment cut by the box rather
-  // than a mark placed within it. That's a property of position, not of what
-  // a character is supposed to look like, so a sheet of arrows or pictograms
-  // is judged by the same rule.
-  //
-  // Only non-main blobs are tested, so a letter that genuinely overshoots its
-  // own box is never harmed — it's the largest mass in the cell and is kept
-  // whatever it touches.
-  const EDGE = 1;
-  for (const b of blobs) {
-    if (b === main) continue;
-    if (b.by0 <= EDGE || b.by1 >= H - 1 - EDGE) {
-      for (const p of b.members) ink[p] = 0;
-      continue;
-    }
-    if (b.n >= 0.25 * main.n) continue; // comparable size (colon, crossbar) -> keep
-    const dx = Math.max(0, Math.max(main.bx0, b.bx0) - Math.min(main.bx1, b.bx1));
-    const dy = Math.max(0, Math.max(main.by0, b.by0) - Math.min(main.by1, b.by1));
-    if (Math.hypot(dx, dy) > gapThresh) { for (const p of b.members) ink[p] = 0; }
-  }
-}
+// NOTE: there is deliberately no stray-removal pass here any more.
+//
+// There used to be one, to delete ink that had leaked in from a neighbouring
+// box. That leak was a symptom of rectifying the photo with straight-line
+// interpolation instead of a real perspective transform (see makeMapper); now
+// that a cell's scan region actually lands on its own printed box, there is
+// nothing foreign to remove.
+//
+// Guessing which marks belong is also the wrong job to be doing. Every rule
+// for it — too small, too far away, touching an edge — is a rule about what a
+// letter is supposed to look like, and this app must not care: a sheet of
+// arrows or pictograms has to scan exactly as well as a sheet of letters.
+// Whatever is inside the box is the character. despeckle() still drops
+// specks below a pixel-area floor, which is sensor noise, not intent.
 
 function despeckle(ink, W, H, minArea) {
   const seen = new Uint8Array(W * H);
@@ -354,7 +340,6 @@ async function scanTemplate(photo, layout, chars, onProgress = () => {}) {
     const minBlob = Math.max(6, Math.round(0.00035 * OUT_W * OUT_H));
     const kept = despeckle(ink, OUT_W, OUT_H, minBlob);
     if (kept < minBlob) continue;
-    dropFarStrays(ink, OUT_W, OUT_H);
 
     const crop = await makeCropBlob(ink, OUT_W, OUT_H, baseRowOutH);
     if (!crop) continue;
