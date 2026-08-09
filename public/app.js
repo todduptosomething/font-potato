@@ -426,9 +426,12 @@ $('subscribeForm').addEventListener('submit', async (e) => {
   } catch (e) { status('subscribeStatus', e.message, 'err'); }
 });
 
+// The label doubles as the state readout — it's the only confirmation that a
+// file was picked, since the input itself is hidden.
+const ATTACH_LABEL = 'Include an attachment';
 $('madeFile').addEventListener('change', () => {
   const f = $('madeFile').files[0];
-  document.querySelector('.attach').firstChild.textContent = f ? `Photo: ${f.name.slice(0, 22)}` : 'Attach a photo';
+  document.querySelector('.attach').firstChild.textContent = f ? `Attached: ${f.name.slice(0, 22)}` : ATTACH_LABEL;
 });
 
 const isValidEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
@@ -450,7 +453,7 @@ $('madeSendBtn').addEventListener('click', async () => {
     status('madeStatus', 'Sent — thank you! 🥔', 'ok');
     $('madeFirstName').value = ''; $('madeLastName').value = '';
     $('madeMsg').value = ''; $('madeEmail').value = ''; $('madeFile').value = '';
-    document.querySelector('.attach').firstChild.textContent = 'Attach a photo';
+    document.querySelector('.attach').firstChild.textContent = ATTACH_LABEL;
   } catch (e) { status('madeStatus', e.message, 'err'); }
 });
 
