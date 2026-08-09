@@ -304,7 +304,7 @@ async function build({ preview = false } = {}) {
       slant: Number($('slant').value),
       // The Edge Smoothness slider is 0..30 in the markup; the engine takes
       // potrace's own 0..2 smoothing scale.
-      smooth: Number($('edgeSmooth').value) / 15,
+      smooth: Number($('edgeSmooth').value) / 30,   // slider 0..30 -> 0..1
       spacing: 0,
       preview,
     }, (phase, done, total) => {

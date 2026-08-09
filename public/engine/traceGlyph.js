@@ -146,8 +146,18 @@ async function tracePotrace(pngBlob, { smooth, detail }) {
       threshold: 128,
       blackOnWhite: true,
       turdSize: Math.round(lerp(1, 10, d)),
-      alphaMax: 0.8 + 0.25 * smooth,
-      optCurve: true,
+      // potrace's corner threshold runs 0 (every corner kept sharp, outline
+      // stays polygonal) to 1.334 (every corner rounded away). `smooth` is
+      // normalised 0..1 and spans that whole range. It used to map to
+      // 0.8..1.3 — the top third only — so the control moved between "quite
+      // smooth" and "very smooth" and never reached rough at all, which is
+      // why it felt like it did nothing.
+      alphaMax: 1.334 * Math.max(0, Math.min(1, smooth)),
+      // Curve fitting replaces the traced polygon with smooth béziers. At the
+      // roughest setting that works against the point, sanding off exactly the
+      // faceted edges being asked for — so below a whisker of smoothing, keep
+      // the raw polygon.
+      optCurve: smooth > 0.03,
       optTolerance: lerp(0.02, 0.45, d),
       turnPolicy: Potrace.TURNPOLICY_MINORITY,
     });
