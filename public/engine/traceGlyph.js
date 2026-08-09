@@ -146,19 +146,18 @@ async function tracePotrace(pngBlob, { smooth, detail }) {
       threshold: 128,
       blackOnWhite: true,
       turdSize: Math.round(lerp(1, 10, d)),
-      // potrace's corner threshold runs 0 (every corner kept sharp, outline
-      // stays polygonal) to 1.334 (every corner rounded away). `smooth` is
-      // normalised 0..1 and spans that whole range. It used to map to
-      // 0.8..1.3 — the top third only — so the control moved between "quite
-      // smooth" and "very smooth" and never reached rough at all, which is
-      // why it felt like it did nothing.
-      alphaMax: 1.334 * Math.max(0, Math.min(1, smooth)),
-      // Curve fitting replaces the traced polygon with smooth béziers. At the
-      // roughest setting that works against the point, sanding off exactly the
-      // faceted edges being asked for — so below a whisker of smoothing, keep
-      // the raw polygon.
-      optCurve: smooth > 0.03,
-      optTolerance: lerp(0.02, 0.45, d),
+      // Corner rounding, 0.8 (potrace's own default) up to 1.334 (every
+      // corner rounded away). The bottom of the slider deliberately sits at
+      // 0.8 rather than 0: the roughest setting is meant to be exactly what
+      // the scan gave us, not a deliberately coarsened version of it.
+      alphaMax: lerp(0.8, 1.334, Math.max(0, Math.min(1, smooth))),
+      optCurve: true,
+      // How far the fitted curve may stray from the traced outline. THIS is
+      // the parameter that reads as smoothness: low and the curve follows
+      // every wobble of the pen line, high and it sails past them into long
+      // clean arcs. It used to be pinned at its finest value regardless of
+      // the slider, which is why the control barely registered.
+      optTolerance: lerp(0.02, 1.2, Math.max(0, Math.min(1, smooth))),
       turnPolicy: Potrace.TURNPOLICY_MINORITY,
     });
     t.loadImage(buf, function (err) {
@@ -188,7 +187,20 @@ async function traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, sm
   // past it the glyph places wider than its own advance and overlaps its
   // neighbour. So grow the canvas first — and shift the baseline anchor by
   // the same amount, since every row moves down with it.
-  const grow = Math.max(0, weight);
+  // Morphological smoothing rounds the SHAPE before it's traced, which curve
+  // fitting alone can't do — fitting only draws a neater line around whatever
+  // outline it's handed. A close (dilate then erode) fills the little notches
+  // and nicks along a pen edge and rounds sharp inner points, while leaving
+  // stroke width unchanged, because every pixel grown is taken back again.
+  // It also closes small gaps, which is the agreed trade at higher settings.
+  //
+  // Close, not open: opening starts with an erosion, and erosion deletes a
+  // stroke only a pixel or two wide outright — the exact fault that put breaks
+  // in a W's stem. Convex corners are left to potrace's alphaMax, which rounds
+  // them without ever removing ink.
+  const smoothIters = Math.round(Math.max(0, Math.min(1, smooth)) * 3);
+
+  const grow = Math.max(0, weight) + smoothIters;
   const W = width + 2 * grow, H = height + 2 * grow;
   const effPad = pad + grow;
   const effBaseline = baselineOffset + grow;
@@ -201,6 +213,10 @@ async function traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, sm
   }
 
   ink = dilateErode(ink, W, H, weight);
+  if (smoothIters > 0) {
+    ink = dilateErode(ink, W, H, smoothIters);    // grow: bridge notches + gaps
+    ink = dilateErode(ink, W, H, -smoothIters);   // shrink back: width restored
+  }
   if (fillIters > 0) {
     ink = dilateErode(ink, W, H, fillIters);
     ink = dilateErode(ink, W, H, -fillIters);
