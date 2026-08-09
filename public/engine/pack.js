@@ -153,6 +153,22 @@ function fontFaceCSS(family, base, hasWoff2 = true) {
   ].join('\n');
 }
 
+// Plain-text files need their own wrapping — a paragraph on one enormous line
+// is unreadable in Notepad, which has no soft wrap by default.
+function wrap(text, width) {
+  const out = [];
+  let line = '';
+  for (const word of text.split(/\s+/)) {
+    if (line && (line + ' ' + word).length > width) { out.push(line); line = word; }
+    else line = line ? line + ' ' + word : word;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+const today = () =>
+  new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
 function readme({ family, fileBase, authorName, hasWoff2 = true }) {
   const owner = authorName ? authorName.trim() : '';
   return [
@@ -184,14 +200,49 @@ function readme({ family, fileBase, authorName, hasWoff2 = true }) {
     `  You can also pick a different form for one specific letter using`,
     `  the Glyphs / Alternates panel in those same apps.`,
     ``,
-    `LICENCE`,
-    `  This is your handwriting, so this font is yours.`,
-    owner
-      ? `  Copyright (c) ${new Date().getFullYear()} ${owner}. All rights reserved.`
-      : `  Copyright (c) ${new Date().getFullYear()} the font's creator. All rights reserved.`,
-    `  Font Potato claims no rights over the fonts it generates.`,
+    `COPYRIGHT`,
+    // Spelled out in full here, rather than compressed the way LICENSE.txt and
+    // the font's own metadata are. This is the version someone reads when they
+    // want the whole picture, so it names the font, the person, and the date.
+    ...wrap(
+      `This font, ${family}, was created by ${owner || "the font's creator"} on ` +
+      `${today()} using Font Potato (fontpotato.com). ${owner || "The font's creator"} ` +
+      `holds full copyright and all rights to this font file and may use, sell, ` +
+      `modify, sublicense, or distribute it however they choose, with no ` +
+      `restrictions from Font Potato.`,
+      74,
+    ).map((l) => `  ${l}`),
+    ``,
+    `  See LICENSE.txt, included with this download.`,
     ``,
   ].filter((l) => l !== null).join('\n');
+}
+
+// Deliberately short, and deliberately not a restatement of the README's
+// ownership paragraph. People who come looking for a file literally named
+// LICENSE — marketplaces, print shops, clients — only need the basic fact
+// confirmed, and a wall of text invites them to go hunting for the catch.
+//
+// Note this is NOT the SIL Open Font License or any other named font licence.
+// Those carry their own redistribution and renaming rules, which would work
+// directly against "do whatever you want" — the OFL in particular forbids
+// selling the font on its own, which is exactly a thing the owner may want
+// to do.
+function licence({ family, authorName }) {
+  const owner = (authorName || '').trim();
+  return [
+    `${family} — Licence`,
+    ``,
+    ...wrap(
+      `Whatever you create with Font Potato belongs to you. This font comes ` +
+      `with no license restrictions from Font Potato — use it, sell it, ` +
+      `modify it, however you like.`,
+      74,
+    ),
+    ``,
+    `Copyright (c) ${new Date().getFullYear()} ${owner || "the font's creator"}`,
+    ``,
+  ].join('\n');
 }
 
 /**
@@ -253,6 +304,10 @@ async function buildFontPackage(ttf, { family, fileBase, authorName = '' }) {
   files.push(
     { name: `${fileBase}.css`, data: enc.encode(fontFaceCSS(family, fileBase, !!woff2)) },
     { name: 'README.txt', data: enc.encode(readme({ family, fileBase, authorName, hasWoff2: !!woff2 })) },
+    // Its own file, and named exactly LICENSE.txt, because that filename is
+    // what people and platforms look for when they need proof they're allowed
+    // to use something.
+    { name: 'LICENSE.txt', data: enc.encode(licence({ family, authorName })) },
   );
   return makeZip(files);
 }
