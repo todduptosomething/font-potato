@@ -74,7 +74,7 @@ async function traceAll(entries, pad, onProgress) {
   const settled = await Promise.all(entries.map((e) =>
     p.run({
       cropBlob: e.blob.blob, cropSize: e.blob.cropSize, pad, char: e.char,
-      weight: e.weight, fillIters: e.fillIters, smooth: e.smooth, detail: e.detail,
+      weight: e.weight, fillIters: e.fillIters, smooth: e.smooth, detail: e.detail, widthScale: e.widthScale,
       capRefPx: e.capRefPx, baselineOffset: e.blob.baselineOffset,
     }).then((result) => {
       done++;

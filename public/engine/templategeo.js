@@ -52,6 +52,12 @@ const HINT_WORD_MASK = { x0: 0.0, y0: 0.0, x1: 1.0, y1: 0.22 };
 // and below this line is simply whatever the writer actually drew.
 const BASELINE_Y_FRAC = 0.74;
 
+// Cap and x-height guides. Printed for the writer's benefit only — nothing
+// in the scanner or the font builder reads them, so a glyph is still free to
+// be any height. Kept here purely so both copies of the geometry agree.
+const CAP_Y_FRAC = 0.24;
+const XHEIGHT_Y_FRAC = 0.42;
+
 const LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ...'abcdefghijklmnopqrstuvwxyz'];
 const DIGITS = [...'0123456789'];
 const SYMBOLS = [...'`~!@#$%^&*()-_=+[]{}\\|;:\'",.<>/?'];
@@ -116,4 +122,4 @@ function layout(chars) {
   return { cols, rows, cw, ch, cells };
 }
 
-export { PAGE, MARKER_SIZE, REG, GRID, HINT, HINT_WORD, HINT_MASK, HINT_WORD_MASK, BASELINE_Y_FRAC, CHARSETS, layout, toUV, columnsFor };
+export { PAGE, MARKER_SIZE, REG, GRID, HINT, HINT_WORD, HINT_MASK, HINT_WORD_MASK, BASELINE_Y_FRAC, CAP_Y_FRAC, XHEIGHT_Y_FRAC, CHARSETS, layout, toUV, columnsFor };

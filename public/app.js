@@ -300,6 +300,7 @@ async function build({ preview = false } = {}) {
       name: $('fontName').value,
       authorName: $('authorName').value,
       weight: Number($('weight').value),
+      width: Number($('width').value),
       slant: Number($('slant').value),
       // The Edge Smoothness slider is 0..30 in the markup; the engine takes
       // potrace's own 0..2 smoothing scale.
