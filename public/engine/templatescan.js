@@ -8,15 +8,21 @@
 import { decodeToGray, grayToPNGBlob } from './image.js';
 
 const PAD = 8;
-// Working resolution cap for the long edge. The Node pipeline used 8000
-// because `sharp` is native and SIMD-accelerated, so the cost was invisible;
-// in the browser the per-cell rectify loop is plain JS, and every doubling of
-// resolution quadruples its work — measured at 8000 a real 48MP iPhone photo
-// took ~56s to rectify, versus ~3s at 4000. A US Letter sheet at 4000px on
-// the long edge is still ~360 DPI, far finer than a pen stroke needs, and
-// output was verified equivalent (94/94 cells, glyph advance widths within
-// 0.4% of the Node build) at this size.
-const MAX_SIDE = 4000;
+// Scan at whatever resolution the photo actually has. This is the single
+// biggest fidelity knob in the whole app: a letter cell is a small fraction
+// of the page, so halving the page halves every stroke. A 48MP phone shot is
+// ~8000px on the long edge, which leaves a cell ~850px and a pen stroke ~25px
+// — enough to smooth, thin, or thicken without the letterform falling apart.
+//
+// This was set to 8000 in the original Node pipeline, for exactly that reason.
+// The browser port silently dropped it to 4000 for speed and wrote a fresh
+// justification for the lower number, which threw away half of every stroke
+// and quietly capped how much any later stage could do. Restored, and set high
+// enough that no current phone is downscaled at all.
+//
+// The cost is real but it is the user's to spend: a sharper font for a slower
+// scan, on a progress bar, in a worker that no longer blocks the page.
+const MAX_SIDE = 12000;
 
 function lerp(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
 
@@ -447,8 +453,8 @@ async function scanTemplate(photo, layout, chars, onProgress = () => {}) {
     const Ptl = map(...uvTL), Ptr = map(...uvTR), Pbr = map(...uvBR), Pbl = map(...uvBL);
     const wpx = Math.hypot(Ptr[0] - Ptl[0], Ptr[1] - Ptl[1]);
     const hpx = Math.hypot(Pbl[0] - Ptl[0], Pbl[1] - Ptl[1]);
-    const OUT_W = Math.max(160, Math.min(1400, Math.round(wpx)));
-    const OUT_H = Math.max(160, Math.min(1800, Math.round(hpx)));
+    const OUT_W = Math.max(160, Math.min(3000, Math.round(wpx)));
+    const OUT_H = Math.max(160, Math.min(3800, Math.round(hpx)));
 
     // rectify the cell (left unmasked — stripHintBlob removes the printed
     // hint by connected component below, not by blind geometry)
