@@ -20,6 +20,10 @@
   font-family: 'Roger Pen'; font-weight: 100 900; font-style: normal; font-display: swap;
   src: url('/fonts/roger-pen.woff2') format('woff2'), url('/fonts/roger-pen.woff') format('woff');
 }
+@font-face {
+  font-family: 'Todd Slab'; font-weight: 100 900; font-style: normal; font-display: swap;
+  src: url('/fonts/todd-slab.woff2') format('woff2'), url('/fonts/todd-slab.woff') format('woff');
+}
 
 :root {
   /* Each theme only sets --ink + --paper; the rest derive from them. */
@@ -37,8 +41,8 @@
      all but vanishes elsewhere. Measured against Sweet's burnt orange, the
      old hardcoded #2f7a3d came out at 1.04:1 — invisible, not just dim. */
   --ok: #2F7A3D;
-  --logo: 'Spectral SC', Georgia, serif;
-  --head: 'Spectral', Georgia, 'Times New Roman', serif;
+  --logo: 'Todd Slab', 'Spectral SC', Georgia, serif;
+  --head: 'Todd Slab', 'Spectral', Georgia, 'Times New Roman', serif;
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
   /* Small captions/tips stay on the old sans body face — a serif at caption
      size reads cramped and fussy where Karla stays clean and out of the way. */
@@ -51,11 +55,14 @@
    white paper but is nearly invisible against Sweet's orange (1.1:1!) or
    Yukon's gold (3.4:1) — each needs its own error red tuned against its OWN
    paper, and a second one tuned against its INVERTED paper for the menu. */
-/* A theme is a voice, not just a colour: Russet keeps the typographic
-   Spectral small caps, Sweet gets a marker, Yukon a pen. Only --logo and
-   --head change — body copy stays Spectral and captions stay Karla in every
-   theme, because a display face at paragraph size stops being readable. */
-:root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D; }
+/* A theme is a voice, not just a colour: Russet gets Todd Slab (the brand
+   face), Sweet a marker, Yukon a pen. Only --logo and --head change — body
+   copy stays Spectral and captions stay Karla in every theme, because a
+   display face at paragraph size stops being readable. Russet's faces are
+   also the :root defaults above, since Russet is the default theme. */
+:root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D;
+  --logo: 'Todd Slab', 'Spectral SC', Georgia, serif;
+  --head: 'Todd Slab', 'Spectral', Georgia, serif; }
 /* Sweet's original pairing (near-white ink #FBF8F7 on orange paper #E48948)
    was only 2.5:1 — well under WCAG AA's 4.5:1. Restored the light ink and
    darkened the orange instead (a burnt-orange/rust, not just a light tint
