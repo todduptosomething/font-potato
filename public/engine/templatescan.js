@@ -138,6 +138,92 @@ function makeMapper({ TL, TR, BL, BR }) {
   };
 }
 
+// Even out the lighting across the whole sheet, once, before any box is read.
+//
+// This step was missing entirely. Decoding stretches the image's overall
+// brightness, which rescales everything equally and so cannot fix one side of
+// the page being darker than the other — and that is the normal case, because
+// people photograph a sheet on a desk with a lamp off to one side, or with
+// their own shadow falling across it. Every later stage then had to cope with
+// a moving target, and the per-box threshold was really compensating for a
+// page-wide problem one box at a time.
+//
+// The fix is flat-fielding, the same idea as a scanner's calibration pass:
+// estimate what the PAPER's brightness is at every point, then divide it out,
+// so white paper reads the same everywhere and only ink stands out.
+//
+// The paper estimate takes the brightest pixel in each coarse block. Paper is
+// brighter than ink by definition, so the maximum inside a block much larger
+// than a pen stroke is paper, whatever was written on top of it. Those block
+// values are then interpolated smoothly, giving an illumination map free of
+// the writing itself. Coarse on purpose: it should follow a lamp's falloff
+// across the page, not the shape of anyone's letters.
+function flattenIllumination(gray, W, H) {
+  const BLOCKS = 40;                       // far coarser than a letter
+  const bw = Math.max(1, Math.ceil(W / BLOCKS));
+  const bh = Math.max(1, Math.ceil(H / BLOCKS));
+  const cols = Math.ceil(W / bw), rows = Math.ceil(H / bh);
+
+  const paper = new Float32Array(cols * rows);
+  for (let by = 0; by < rows; by++) {
+    const yEnd = Math.min(H, (by + 1) * bh);
+    for (let bx = 0; bx < cols; bx++) {
+      const xEnd = Math.min(W, (bx + 1) * bw);
+      let mx = 0;
+      for (let y = by * bh; y < yEnd; y++) {
+        const row = y * W;
+        for (let x = bx * bw; x < xEnd; x++) { const v = gray[row + x]; if (v > mx) mx = v; }
+      }
+      paper[by * cols + bx] = mx;
+    }
+  }
+
+  // Widen each block's estimate to its 3x3 neighbourhood. A registration
+  // marker is a solid black square bigger than one block, so a block landing
+  // wholly inside one would otherwise report the marker's own darkness as
+  // "paper" — and dividing by that turns the marker white and loses it. Taking
+  // the brightest of the surrounding blocks means any block within one block
+  // of real paper still sees paper, so large dark objects survive the
+  // correction intact. This is what lets the markers be found on the corrected
+  // image, which is the whole point: they were being missed in shadow.
+  const widened = new Float32Array(paper.length);
+  for (let by = 0; by < rows; by++) {
+    for (let bx = 0; bx < cols; bx++) {
+      let mx = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        const y = by + dy; if (y < 0 || y >= rows) continue;
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = bx + dx; if (x < 0 || x >= cols) continue;
+          const v = paper[y * cols + x]; if (v > mx) mx = v;
+        }
+      }
+      widened[by * cols + bx] = mx;
+    }
+  }
+  paper.set(widened);
+
+  // Bilinear between block centres, so the correction varies smoothly instead
+  // of printing block edges across the page.
+  const out = new Uint8ClampedArray(W * H);
+  for (let y = 0; y < H; y++) {
+    const fy = Math.min(rows - 1, Math.max(0, y / bh - 0.5));
+    const gy0 = Math.floor(fy), gy1 = Math.min(rows - 1, gy0 + 1), ty = fy - gy0;
+    for (let x = 0; x < W; x++) {
+      const fx = Math.min(cols - 1, Math.max(0, x / bw - 0.5));
+      const gx0 = Math.floor(fx), gx1 = Math.min(cols - 1, gx0 + 1), tx = fx - gx0;
+      const p =
+        paper[gy0 * cols + gx0] * (1 - tx) * (1 - ty) +
+        paper[gy0 * cols + gx1] * tx * (1 - ty) +
+        paper[gy1 * cols + gx0] * (1 - tx) * ty +
+        paper[gy1 * cols + gx1] * tx * ty;
+      // Guard a near-black estimate (a photo so dark there is no paper to
+      // find) from turning into a divide-by-nothing explosion.
+      out[y * W + x] = p > 8 ? (gray[y * W + x] * 255) / p : gray[y * W + x];
+    }
+  }
+  return out;
+}
+
 // Local adaptive threshold (Sauvola) — decides ink vs paper per PIXEL, from
 // the paper immediately around it, instead of one cutoff number for a whole
 // box.
@@ -332,14 +418,22 @@ async function scanTemplate(photo, layout, chars, onProgress = () => {}) {
   onProgress({ phase: 'decoding' });
   const { data, width: W, height: H } = await decodeToGray(photo, { maxSide: MAX_SIDE });
 
+  // Even out the lighting FIRST, so everything after it — markers included —
+  // sees a page with uniform white paper. Marker detection uses a fixed
+  // darkness cutoff, which silently fails on a page lit from one side: the
+  // markers on the shaded half stop qualifying, a wrong point gets picked, and
+  // the whole grid shifts while still reporting success.
+  const flat = flattenIllumination(data, W, H);
+
   onProgress({ phase: 'locating' });
-  const markers = findMarkers(data, W, H);
+  const markers = findMarkers(flat, W, H);
   if (!markers) {
     const err = new Error('Could not find the four black corner markers. Make sure the whole sheet is in frame, flat and evenly lit, with all four corners visible.');
     err.code = 'NO_MARKERS';
     throw err;
   }
   const map = makeMapper(markers);
+
   const L = layout(chars);
   let cellsDone = 0;
   onProgress({ phase: 'reading', done: 0, total: L.cells.length });
@@ -366,7 +460,7 @@ async function scanTemplate(photo, layout, chars, onProgress = () => {}) {
         const tp = lerp(Ptl, Ptr, s);
         const bt = lerp(Pbl, Pbr, s);
         const src = lerp(tp, bt, t);
-        cellGray[oy * OUT_W + ox] = sampleGray(data, W, H, src[0], src[1]);
+        cellGray[oy * OUT_W + ox] = sampleGray(flat, W, H, src[0], src[1]);
       }
     }
     const hx0 = Math.round(cell.hintFrac.x0 * OUT_W), hx1 = Math.round(cell.hintFrac.x1 * OUT_W);
