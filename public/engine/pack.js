@@ -234,9 +234,9 @@ function licence({ family, authorName }) {
     `${family} — Licence`,
     ``,
     ...wrap(
-      `Whatever you create with Font Potato belongs to you. This font comes ` +
-      `with no license restrictions from Font Potato — use it, sell it, ` +
-      `modify it, however you like.`,
+      `This font is the sole property of the copyright holder named below, ` +
+      `who may use, modify, sell, or distribute it however they choose. ` +
+      `No restrictions are imposed by Font Potato.`,
       74,
     ),
     ``,
