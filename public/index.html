@@ -12,17 +12,22 @@
 
   <!-- What a link to Font Potato looks like when someone shares it. The title
        here is written to stand alone in a feed, where there's no page around
-       it to give it context. og:image is deliberately absent until there's a
-       real image to point at: a tag referencing a missing file makes some
-       platforms render a broken card, which is worse than a plain text one. -->
+       it to give it context. The image URL is absolute because scrapers
+       (Facebook, Slack, iMessage) resolve og:image outside any page context
+       and several refuse relative paths outright. -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Font Potato" />
   <meta property="og:url" content="https://fontpotato.com/" />
   <meta property="og:title" content="Turn your handwriting into a real font" />
   <meta property="og:description" content="Print a sheet, scribble on it, snap a photo. Font Potato hands you back an installable font. Free, and your photo never leaves your device." />
-  <meta name="twitter:card" content="summary" />
+  <meta property="og:image" content="https://fontpotato.com/social-share-img.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Font Potato — for the terminally lazy typographer, turn your handwriting into a font." />
+  <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Turn your handwriting into a real font" />
   <meta name="twitter:description" content="Print a sheet, scribble on it, snap a photo. Font Potato hands you back an installable font. Free, and your photo never leaves your device." />
+  <meta name="twitter:image" content="https://fontpotato.com/social-share-img.jpg" />
 
   <!-- Google Analytics is NOT loaded here. consent.js injects it only after
        someone actively agrees, so a visitor who declines (or never answers)
