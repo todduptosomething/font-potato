@@ -32,6 +32,11 @@
   --hair: color-mix(in srgb, var(--ink) 20%, var(--paper));
   --err: #b23a26;
   --err-inverted: #b23a26;
+  /* The "yes" green needs the same per-theme treatment --err already gets,
+     for the same reason: one fixed green reads fine on near-white paper and
+     all but vanishes elsewhere. Measured against Sweet's burnt orange, the
+     old hardcoded #2f7a3d came out at 1.04:1 — invisible, not just dim. */
+  --ok: #2F7A3D;
   --logo: 'Spectral SC', Georgia, serif;
   --head: 'Spectral', Georgia, 'Times New Roman', serif;
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
@@ -50,15 +55,15 @@
    Spectral small caps, Sweet gets a marker, Yukon a pen. Only --logo and
    --head change — body copy stays Spectral and captions stay Karla in every
    theme, because a display face at paragraph size stops being readable. */
-:root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; }
+:root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D; }
 /* Sweet's original pairing (near-white ink #FBF8F7 on orange paper #E48948)
    was only 2.5:1 — well under WCAG AA's 4.5:1. Restored the light ink and
    darkened the orange instead (a burnt-orange/rust, not just a light tint
    down) to reach 5.2:1 — comfortably AA with real margin. */
-:root[data-theme="sweet"]  { --ink: #FBF8F7; --paper: #A85018; --ink-inverted: #A85018; --paper-inverted: #FBF8F7; --err: #FFE6DA; --err-inverted: #B23A26;
+:root[data-theme="sweet"]  { --ink: #FBF8F7; --paper: #A85018; --ink-inverted: #A85018; --paper-inverted: #FBF8F7; --err: #FFE6DA; --err-inverted: #B23A26; --ok: #DFF7DA;
   --logo: 'Lilian Marker', 'Spectral SC', Georgia, serif;
   --head: 'Lilian Marker', 'Spectral', Georgia, serif; }
-:root[data-theme="yukon"]  { --ink: #483C32; --paper: #E4C155; --ink-inverted: #E4C155; --paper-inverted: #483C32; --err: #7A1E14; --err-inverted: #FF8A75;
+:root[data-theme="yukon"]  { --ink: #483C32; --paper: #E4C155; --ink-inverted: #E4C155; --paper-inverted: #483C32; --err: #7A1E14; --err-inverted: #FF8A75; --ok: #1C5426;
   --logo: 'Roger Pen', 'Spectral SC', Georgia, serif;
   --head: 'Roger Pen', 'Spectral', Georgia, serif; }
 
@@ -236,8 +241,10 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
   display: block; width: 100%;
   background-color: var(--ink);
 }
-.guide-img-size { aspect-ratio: 1520.67 / 858.16; mask: url('/img/guide-size.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-size.svg') center / contain no-repeat; }
-.guide-img-bounds { aspect-ratio: 1511.81 / 716.34; mask: url('/img/guide-bounds.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-bounds.svg') center / contain no-repeat; }
+/* Ratios must match each file's own viewBox, or `contain` letterboxes the
+   art inside a box the wrong shape and the figure drifts off-centre. */
+.guide-img-size { aspect-ratio: 1520.72 / 858.17; mask: url('/img/guide-size.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-size.svg') center / contain no-repeat; }
+.guide-img-bounds { aspect-ratio: 1511.9 / 716.34; mask: url('/img/guide-bounds.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-bounds.svg') center / contain no-repeat; }
 .guide-labels { display: flex; margin-top: 4px; }
 /* The two display faces, used here regardless of theme — the labels are
    shouting, and a marker and a pen shout better than a book serif does.
@@ -246,7 +253,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
    run small next to Spectral at the same pixel size. */
 .guide-labels span { flex: 1; text-align: center; font-weight: 400; font-size: 1.35rem; line-height: 1.1; }
 /* Placeholder styling — real yes/no web fonts will replace these once supplied. */
-.guide-yes { color: #2f7a3d; font-family: 'Lilian Marker', var(--head); }
+.guide-yes { color: var(--ok); font-family: 'Lilian Marker', var(--head); }
 .guide-no { color: var(--err); font-family: 'Roger Pen', var(--head); }
 @media (max-width: 560px) { .guide-row { flex-direction: column; max-width: 260px; } }
 
