@@ -138,6 +138,46 @@ function scaleWidthPreserveStroke(ink, W, H, pad, sx) {
   return { ink: out, W: outW };
 }
 
+// Shape smoothing that works in BOTH directions: blur the binary mask and
+// re-threshold at half. A pixel survives if at least half its neighbourhood is
+// ink.
+//
+// A morphological close (what this used to do) only fills concave notches. It
+// leaves convex spikes exactly as they were, so as the dents around a sharp
+// point fill in, the point itself stands out MORE — the setting read as
+// sharpening. The mirror operation, an open, shortens spikes but begins with
+// an erosion, and erosion deletes a stroke a pixel or two wide outright.
+//
+// Blur-and-threshold does both at once and does neither by erosion: a convex
+// spike has little ink around it so it falls below half and retreats, a
+// concave notch has lots so it fills, and a stroke's own core is surrounded by
+// its own ink so it stays put. Radius is tied to the measured pen width, so a
+// fine pen is never smoothed away.
+function smoothShape(ink, W, H, radius) {
+  if (radius < 1) return ink;
+  const stride = W + 1;
+  const I = new Int32Array(stride * (H + 1));
+  for (let y = 0; y < H; y++) {
+    let rowSum = 0;
+    for (let x = 0; x < W; x++) {
+      rowSum += ink[y * W + x];
+      I[(y + 1) * stride + (x + 1)] = I[y * stride + (x + 1)] + rowSum;
+    }
+  }
+  const out = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const y0 = Math.max(0, y - radius), y1 = Math.min(H - 1, y + radius);
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - radius), x1 = Math.min(W - 1, x + radius);
+      const area = (x1 - x0 + 1) * (y1 - y0 + 1);
+      const a = (y1 + 1) * stride + (x1 + 1), b = y0 * stride + (x1 + 1);
+      const c = (y1 + 1) * stride + x0, d = y0 * stride + x0;
+      if ((I[a] - I[b] - I[c] + I[d]) * 2 >= area) out[y * W + x] = 1;
+    }
+  }
+  return out;
+}
+
 async function tracePotrace(pngBlob, { smooth, detail }) {
   const d = Math.max(0, Math.min(1, detail));
   const buf = Buffer.from(await pngBlob.arrayBuffer());
@@ -213,9 +253,20 @@ async function traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, sm
   }
 
   ink = dilateErode(ink, W, H, weight);
-  if (smoothIters > 0) {
-    ink = dilateErode(ink, W, H, smoothIters);    // grow: bridge notches + gaps
-    ink = dilateErode(ink, W, H, -smoothIters);   // shrink back: width restored
+  if (smooth > 0) {
+    // Radius is a FRACTION of the pen width, never a multiple of it. At a
+    // full stroke width the neighbourhood around any point of a stroke is
+    // mostly blank, so the half-ink test fails everywhere and the letter
+    // dissolves into dots — measured, not guessed. Just under half a stroke
+    // rounds the outline hard while every stroke keeps its own core.
+    const strokeW = measureStroke(ink, W, H);
+    const radius = Math.round(Math.max(0, Math.min(1, smooth)) * Math.max(1, strokeW * 0.45));
+    ink = smoothShape(ink, W, H, radius);
+    // No morphological close here. A close only ever ADDS ink, and it adds it
+    // where two strokes meet — so corners silently fattened and the result
+    // read as a pen bleeding into the paper rather than a smoother letter.
+    // Blur-and-threshold already closes small gaps symmetrically, without
+    // depositing extra weight at every junction.
   }
   if (fillIters > 0) {
     ink = dilateErode(ink, W, H, fillIters);
