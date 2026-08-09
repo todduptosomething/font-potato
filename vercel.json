@@ -1,9 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "outputDirectory": "public",
-  "buildCommand": null,
-  "installCommand": null,
   "framework": null,
+  "outputDirectory": "public",
+  "installCommand": "echo 'nothing to install — public/ is prebuilt and committed'",
+  "buildCommand": "echo 'nothing to build — public/ is prebuilt and committed'",
   "headers": [
     {
       "source": "/engine/(.*)",
@@ -15,6 +15,12 @@
       "source": "/fonts/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/handwriting-template.pdf",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
       ]
     }
   ]
