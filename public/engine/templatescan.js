@@ -191,8 +191,38 @@ function dropFarStrays(ink, W, H) {
   if (blobs.length < 2) return;
   const main = blobs.reduce((a, b) => (b.n > a.n ? b : a));
   const gapThresh = 0.20 * Math.min(W, H);
+  // The commonest intruder is the PRINTED hint from the next box down. Each
+  // cell masks its own hint (see stripHintBlob), but nothing masks a
+  // neighbour's, and the hint is deliberately real black ink so a person can
+  // read it — so when the rectified grid drifts by a hair, the top of the
+  // hint below lands inside the bottom of this cell and survives
+  // thresholding. Observed as an 'i' carrying the tip of the 'q' printed in
+  // the box beneath it, which then stretched the crop and wrecked the
+  // letter's advance width.
+  //
+  // The size rule below can't catch it: it keeps anything ≥25% of the main
+  // mass precisely so an i's dot survives, and an i is a thin stem, so a
+  // sliver clears that bar easily. The guard built to protect the dot is what
+  // waves the intruder through.
+  //
+  // The edge is what separates them. A letter's own detached parts — the dot
+  // on an i or j, the two of a colon, the bar of an = — sit inside the box
+  // with air around them. Anything arriving from outside crosses the boundary
+  // to get here, so it runs off the edge: a fragment cut by the box rather
+  // than a mark placed within it. That's a property of position, not of what
+  // a character is supposed to look like, so a sheet of arrows or pictograms
+  // is judged by the same rule.
+  //
+  // Only non-main blobs are tested, so a letter that genuinely overshoots its
+  // own box is never harmed — it's the largest mass in the cell and is kept
+  // whatever it touches.
+  const EDGE = 1;
   for (const b of blobs) {
     if (b === main) continue;
+    if (b.by0 <= EDGE || b.by1 >= H - 1 - EDGE) {
+      for (const p of b.members) ink[p] = 0;
+      continue;
+    }
     if (b.n >= 0.25 * main.n) continue; // comparable size (colon, crossbar) -> keep
     const dx = Math.max(0, Math.max(main.bx0, b.bx0) - Math.min(main.bx1, b.bx1));
     const dy = Math.max(0, Math.max(main.by0, b.by0) - Math.min(main.by1, b.by1));
