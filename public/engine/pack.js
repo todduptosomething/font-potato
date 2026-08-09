@@ -223,15 +223,15 @@ function readme({ family, fileBase, authorName, hasWoff2 = true }) {
 // LICENSE — marketplaces, print shops, clients — only need the basic fact
 // confirmed, and a wall of text invites them to go hunting for the catch.
 //
-// Note this is NOT the SIL Open Font License or any other named font licence.
+// Note this is NOT the SIL Open Font License or any other named font license.
 // Those carry their own redistribution and renaming rules, which would work
 // directly against "do whatever you want" — the OFL in particular forbids
 // selling the font on its own, which is exactly a thing the owner may want
 // to do.
-function licence({ family, authorName }) {
+function license({ family, authorName }) {
   const owner = (authorName || '').trim();
   return [
-    `${family} — Licence`,
+    `${family} — License`,
     ``,
     ...wrap(
       `This font is the sole property of the copyright holder named below, ` +
@@ -307,7 +307,7 @@ async function buildFontPackage(ttf, { family, fileBase, authorName = '' }) {
     // Its own file, and named exactly LICENSE.txt, because that filename is
     // what people and platforms look for when they need proof they're allowed
     // to use something.
-    { name: 'LICENSE.txt', data: enc.encode(licence({ family, authorName })) },
+    { name: 'LICENSE.txt', data: enc.encode(license({ family, authorName })) },
   );
   return makeZip(files);
 }

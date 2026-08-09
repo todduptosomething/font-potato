@@ -104,7 +104,7 @@ function buildTTFWithAlternates(name, glyphList, meta = {}) {
     description: 'Originally generated with Font Potato (fontpotato.com)',  // nameID 10
     // nameID 13. Compressed to the same meaning as LICENSE.txt rather than a
     // restatement of it. No License URL (nameID 14) — there is no external
-    // licence document to point at, and adding one would imply terms exist.
+    // license document to point at, and adding one would imply terms exist.
     license: 'No restrictions from Font Potato. This font belongs to the copyright holder named above.',
     version: 'Version 1.0',
   });
