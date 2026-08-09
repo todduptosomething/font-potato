@@ -395,7 +395,12 @@ $('downloadZip').addEventListener('click', async (e) => {
 // version worth seeing, not just their first pass. What gets sent is a PNG of
 // one phrase set in their font, drawn here on a canvas, not the font file and
 // never the photo.
-const SPECIMEN_CONSENT_VERSION = 'v1';
+// Bumped whenever the checkbox wording changes, so a stored consent can be
+// traced to the exact sentence that person agreed to. v2 is not a reword of
+// v1 — it says the sample may be SHARED WITH OTHERS, where v1 only said we'd
+// look at it. That's a broader permission, and someone who ticked v1 hasn't
+// given it.
+const SPECIMEN_CONSENT_VERSION = 'v2';
 async function sendSpecimen() {
   if (!state.lastTTF || !$('specimenConsent').checked) return;
   try {
