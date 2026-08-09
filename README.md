@@ -1,25 +1,29 @@
 # 🥔 Font Potato
 
 Turn a photo of your handwriting into a real, installable font — with live
-sliders for **weight, smoothness, slant, spacing, and detail**, always-on
+sliders for **weight, width, slant, and edge smoothness**, always-on
 **alternate glyphs** so repeated letters don't look like identical stamps, and
 a marker-based template so every letter is read by position instead of guessed.
-Everything currently runs on your own machine; your photo never leaves it.
+
+**Everything runs in your browser.** The photo is decoded, the page is found by
+its corner marks, the letters are traced, the font is assembled and the zip is
+packaged — all on the user's own machine. Nothing about their handwriting is
+uploaded, ever. The site is static files; there is no server to send it to.
 
 It wraps the [`draw-your-font`](https://github.com/danilo-znamerovszkij/draw-your-font)
-engine and layers a template scanner, live slider UI, and alternate-glyph
-generation on top.
+engine and layers a template scanner, live slider UI, kerning, and
+alternate-glyph generation on top.
 
-## Run it
+## Run it locally
 
 ```bash
 npm install
-npm start          # or: PORT=5000 npm start
+npm run dev
 ```
 
-Opens the studio at **http://localhost:4321**. Working files and logs live in
-`workdirs/` next to the app (gitignored, safe to delete) unless `DYF_DATA_DIR`
-points somewhere else.
+Opens at **http://localhost:4321**. `server.js` is a dev server and nothing
+else — it exists only so `public/` is served over `http://` instead of
+`file://`, which ES modules and web workers require. It is not deployed.
 
 To stop a background server: `lsof -ti tcp:4321 | xargs kill`.
 
@@ -29,15 +33,16 @@ To stop a background server: `lsof -ti tcp:4321 | xargs kill`.
    marked with four corner registration squares.
 2. **Print** it, write one letter per box with a dark pen, and **photograph**
    the whole sheet — flat, evenly lit, all four black corner marks visible.
-3. Drop the photo in and click **Read template**. The app finds the page by its
-   marks and reads each box *by position*, so every letter is labeled
-   automatically, multi-part letters (`i j = % ? !`) stay whole, sizes are
-   consistent, and the background is ignored entirely.
+3. Drop the photo in and click **Process**. The app finds the page by its marks
+   and reads each box *by position*, so every letter is labeled automatically,
+   multi-part letters (`i j = % ? !`) stay whole, sizes are consistent, and the
+   background is ignored entirely. Because it never tries to *recognize* what
+   you drew, a sheet of arrows or pictograms works exactly as well as letters.
 4. **Shape the typeface** with the live-updating sliders and **download** —
-   TTF, WOFF, WOFF2, and a ready-to-use CSS `@font-face` block.
+   TTF, WOFF, WOFF2, and a ready-to-use CSS `@font-face` block, in one zip.
 
-**Photos:** JPG / PNG / **HEIC** all work — iPhone HEIC is converted
-automatically. Double-click the `.ttf` to install on macOS.
+**Photos:** JPG / PNG / **HEIC** all work — iPhone HEIC is decoded in the
+browser via libheif-wasm. Double-click the `.ttf` to install on macOS.
 
 ## Alternates (always on)
 
@@ -46,61 +51,72 @@ same `t` in "letter" twice, which reads as fake. Font Potato writes an OpenType
 `calt` feature so this happens automatically, on by default in browsers, Word,
 Figma, InDesign, etc:
 
-- Each letter gets a true default plus **3 procedurally re-written alternates**
-  (gentle tilt/size/baseline variation — not distortion).
-- A run cascades `default → alt1 → alt2 → alt3 → default …`, so a *repeated*
-  letter (`coffee`, `letter`, `mmm`) visibly varies, while a **non-repeating
-  letter always renders as your true scanned shape** — the calt rule only fires
-  on an actual adjacent repeat.
-- Non-adjacent repeats (the separated `a`s in "banana") render identically —
-  matching those too would need a lookback window plain OpenType GSUB doesn't
-  support.
+- Each letter gets a true default plus **3 alternates**. By default these are
+  generated (a gentle domain warp — tilt/size/baseline variation, not
+  distortion). Tick **Manual** and upload the same template filled in 1–2 more
+  times, and your *actual* second and third versions of each letter are used
+  instead.
+- A repeated letter (`coffee`, `letter`, `mmm`) visibly varies, while a
+  non-repeating letter always renders as your true scanned shape.
+- The lookback is 3 characters, so `banana` varies too — not just adjacent
+  repeats.
 
 ## What maps to what
 
-| Control    | Under the hood                                              |
-|------------|--------------------------------------------------------------|
-| Weight     | dilate/erode the binarized ink (−2…+2)                        |
-| Smoothness | potrace `alphaMax` (corner rounding, 0…2)                     |
-| Detail     | potrace `turdSize` + `optTolerance`, plus gap-fill at low end |
-| Slant      | italic shear on the placed glyph path (± degrees)             |
-| Spacing    | extra room split on both sides of each letter (± em units)    |
+| Control         | Under the hood                                          |
+|-----------------|---------------------------------------------------------|
+| Weight          | dilate/erode the binarized ink (−2…+2)                   |
+| Width           | horizontal scale of the placed glyph                     |
+| Slant           | italic shear on the placed glyph path (± degrees)        |
+| Edge Smoothness | potrace `alphaMax` (corner rounding)                     |
 
-All of these rebuild instantly from the scanned letters — no re-scan needed.
-
-## Optional: auto-label with Claude
-
-Manual labeling always works with zero setup. If you'd rather have Claude read
-the letters for you, set `ANTHROPIC_API_KEY` before starting the server:
-
-```bash
-ANTHROPIC_API_KEY=sk-ant-... npm start
-```
-
-An **✨ Auto-label with Claude** button then appears after scanning. It sends
-only the numbered contact sheet to the Anthropic API (this is the one step
-that leaves your machine, and only if you enable it). Override the model with
-`DYF_LABEL_MODEL` (default `claude-sonnet-5`).
-
-## Opt-in gallery
-
-Users can opt in to have a sample sentence in their font — never the font file
-or the uploaded photo — saved to `specimens/` for the public gallery. Sentences
-are picked at random from a funny potato-themed set in `lib/specimen.js`.
+All of these rebuild from the already-traced letters — no re-scan needed. Glyphs
+are placed against the template's **baseline**, so a small letter stays small
+and a descending swash capital keeps its descender. Kerning pairs are measured
+from the actual ink and written as a legacy `kern` table, which browsers apply,
+so the preview shows the spacing the real font will have.
 
 ## Project layout
 
 ```
-server.js              Express server + API
-lib/templatescan.js     marker detection + per-cell photo rectification
-lib/templategeo.js      shared template geometry (generator + scanner read this)
-lib/fontbuild.js        builds the font from crops + labels
-lib/variants.js          procedural alternate-glyph generation
-lib/assemble2.js         opentype.js TTF assembly + GSUB calt
-lib/specimen.js          HarfBuzz-shaped specimen rendering for the gallery
-lib/autolabel.js         optional Claude vision labeling
-public/                 index.html + app.js + style.css (vanilla, no build step)
+public/                   ← this directory IS the deployed site
+public/index.html         the whole UI
+public/app.js             UI wiring; imports the engine below
+public/engine/            the pipeline, as plain ES modules
+  scan-controller.js       talks to the scan worker
+  templatescan.js          marker detection + per-cell rectification
+  templategeo.js           shared template geometry (mirrors lib/templategeo.js)
+  fontbuild.js             trace + variant caches, orchestrates a build
+  place.js                 baseline-anchored glyph placement
+  variants.js              alternate-glyph generation
+  assemble.js              opentype.js assembly + GSUB calt
+  kern.js                  kern table + sfnt checksum repair
+  pack.js                  TTF→WOFF/WOFF2, zip writer
+  collect.js               the only outbound calls: Supabase
+  vendor*.js|mjs           prebuilt bundles (npm run build:all), committed
+
+lib/templategeo.js        template geometry, shared with the PDF generator
+lib/template.js           printable template PDF
+build/                    the build scripts that produce public/engine/vendor*
+server.js                 local dev server only
 ```
+
+**After changing `lib/templategeo.js`, run `npm run build:template`** and mirror
+the change into `public/engine/templategeo.js`. The printed sheet and the
+scanner read the same geometry; if they disagree, nothing scans.
+
+## Deploying
+
+Static hosting, no build step, no server, no environment variables. On Vercel
+the settings in `vercel.json` are all it needs: output directory `public`, no
+build and no install command. The prebuilt bundles and the template PDF are
+committed, so a deploy is a file copy.
+
+Mailing-list signups, contact messages and opt-in samples go straight from the
+browser to Supabase (`public/engine/collect.js`). The key in that file is the
+*publishable* key and is meant to be public: every table has an INSERT policy
+and deliberately no SELECT policy, so it can add a row but cannot read anything
+back out.
 
 ## License
 

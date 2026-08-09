@@ -1,16 +1,16 @@
 {
   "name": "font-potato",
   "version": "1.0.0",
+  "private": true,
   "type": "commonjs",
-  "main": "server.js",
   "scripts": {
-    "start": "node server.js",
     "dev": "node server.js",
     "build:vendor": "esbuild build/vendor-entry.js --bundle --minify --platform=browser --format=esm --define:global=window --outfile=public/engine/vendor.js",
     "build:fontpack": "esbuild build/fontpack-entry.js --bundle --minify --platform=browser --format=esm --define:global=window --alias:fs=./build/node-shim.js --alias:path=./build/node-shim.js --alias:crypto=./build/node-shim.js --outfile=public/engine/vendor-fontpack.js",
     "build:heic": "cp node_modules/libheif-js/libheif-wasm/libheif-bundle.mjs public/engine/vendor-libheif.mjs",
-    "build:all": "npm run build:vendor && npm run build:fontpack && npm run build:woff2 && npm run build:heic",
-    "build:woff2": "sh build/make-woff2-esm.sh"
+    "build:woff2": "sh build/make-woff2-esm.sh",
+    "build:template": "node build/make-template.js",
+    "build:all": "npm run build:vendor && npm run build:fontpack && npm run build:woff2 && npm run build:heic && npm run build:template"
   },
   "keywords": [
     "handwriting",
@@ -20,13 +20,15 @@
     "draw-your-font"
   ],
   "license": "GPL-2.0-or-later",
-  "description": "Web studio for turning a photo of your handwriting into a font, with live weight/width/slant/smoothness controls. The whole pipeline runs in the browser; the server only serves the page and the printable template.",
-  "dependencies": {
+  "description": "Turns a photo of your handwriting into a real, installable font. Everything — reading the photo, tracing the letters, building the font — runs in the browser, so what ships is the static contents of public/.",
+  "//": "Nothing here runs in production: public/ is the whole deployed site. These are the tools that BUILD what's in public/ (bundled by npm run build:all and committed), plus express for the local dev server. That's why they are all devDependencies.",
+  "devDependencies": {
     "@fontsource/karla": "^5.3.0",
     "@fontsource/spectral": "^5.3.0",
     "@fontsource/spectral-sc": "^5.3.0",
     "buffer": "^5.7.1",
     "draw-your-font": "^0.1.0",
+    "esbuild": "^0.28.1",
     "express": "^5.2.1",
     "libheif-js": "^1.19.8",
     "opentype.js": "^2.0.0",
@@ -35,8 +37,5 @@
     "svgpath": "^2.6.0",
     "ttf2woff": "^3.0.0",
     "wawoff2": "^2.0.1"
-  },
-  "devDependencies": {
-    "esbuild": "^0.28.1"
   }
 }

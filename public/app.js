@@ -82,9 +82,11 @@ $('brandReset').addEventListener('click', () => { window.location.href = '/'; })
 updateWizardNav();
 
 /* ---------- download template ---------- */
+// A static file, not a generated one: the sheet is the same for everybody, so
+// it's built once by `npm run build:template` and served off the CDN.
 $('downloadTpl').addEventListener('click', () => {
   const a = document.createElement('a');
-  a.href = '/api/template';
+  a.href = '/handwriting-template.pdf';
   a.download = 'handwriting-template.pdf';
   document.body.appendChild(a); a.click(); a.remove();
 });
