@@ -5,17 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Font Potato</title>
 
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5BETCLFHKE"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-5BETCLFHKE');
-  </script>
-
+  <!-- Google Analytics is NOT loaded here. consent.js injects it only after
+       someone actively agrees, so a visitor who declines (or never answers)
+       has no Google cookie set and no request made on their behalf. -->
   <link rel="stylesheet" href="style.css" />
+  <script src="consent.js" defer></script>
 </head>
 <body>
   <div class="app-viewport">
@@ -207,7 +201,8 @@
         <a href="https://pdfkit.org/" target="_blank" rel="noopener">PDFKit</a>.
         Set in <a href="https://fonts.google.com/specimen/Spectral" target="_blank" rel="noopener">Spectral</a>
         &amp; <a href="https://fonts.google.com/specimen/Karla" target="_blank" rel="noopener">Karla</a>
-        (Open Font License), with Lilian Marker and Roger Pen. Your photo and your font are made on your device and
+        (Open Font License), with Lilian Marker and Roger Pen.
+        <a href="#" id="cookieReopen">Change your analytics choice</a>. Your photo and your font are made on your device and
         never uploaded — the only thing we ever receive is a sample image, and
         only if you tick the box asking us to.
       </p>
@@ -219,6 +214,14 @@
       <button id="cropModalClose" class="crop-modal-close" aria-label="Close">×</button>
       <img id="cropModalImg" src="" alt="" />
       <div id="cropModalCap" class="crop-modal-cap"></div>
+    </div>
+  </div>
+
+  <div id="cookieBar" class="cookie-bar" role="dialog" aria-live="polite" aria-label="Analytics consent" hidden>
+    <p class="cookie-copy">Mind if we count you? Google Analytics tells us whether anyone's actually using Font Potato. It sets cookies. Either way, your photo and your font never leave your device — that part isn't up for negotiation.</p>
+    <div class="cookie-actions">
+      <button id="cookieNo" class="btn" type="button">No thanks</button>
+      <button id="cookieYes" class="btn solid" type="button">Sure, count me</button>
     </div>
   </div>
 
