@@ -138,6 +138,64 @@ function makeMapper({ TL, TR, BL, BR }) {
   };
 }
 
+// Local adaptive threshold (Sauvola) — decides ink vs paper per PIXEL, from
+// the paper immediately around it, instead of one cutoff number for a whole
+// box.
+//
+// A single threshold assumes the box is evenly lit. Real photos are not:
+// people shoot on a desk under one lamp, or with their own shadow across the
+// page, so one side of a box is darker than the other. Any single number is
+// then wrong somewhere — too low on the shady side and thin strokes fall the
+// wrong side of it and simply disappear, which is what put breaks in a W's
+// stem and an f that have none on paper.
+//
+// Sauvola compares each pixel to the local mean, and pulls the threshold down
+// where the local variation is low. On blank paper (low variation) it demands
+// a genuinely dark pixel, so it doesn't hallucinate ink out of noise; across a
+// stroke (high variation) it accepts a lighter pixel, so faint and thin parts
+// survive. Computed with integral images, so the window costs the same at any
+// size.
+//
+// R = 128 is the standard dynamic-range constant for 8-bit input; k controls
+// how eagerly faint ink is accepted — lower keeps more of a light pen.
+function sauvolaInk(gray, W, H, win, k, inkCeiling) {
+  const stride = W + 1;
+  const sum = new Float64Array(stride * (H + 1));
+  const sumSq = new Float64Array(stride * (H + 1));
+  for (let y = 0; y < H; y++) {
+    let rowSum = 0, rowSumSq = 0;
+    for (let x = 0; x < W; x++) {
+      const v = gray[y * W + x];
+      rowSum += v; rowSumSq += v * v;
+      sum[(y + 1) * stride + (x + 1)] = sum[y * stride + (x + 1)] + rowSum;
+      sumSq[(y + 1) * stride + (x + 1)] = sumSq[y * stride + (x + 1)] + rowSumSq;
+    }
+  }
+  const r = win >> 1;
+  const R = 128;
+  const out = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+    for (let x = 0; x < W; x++) {
+      const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+      const area = (x1 - x0 + 1) * (y1 - y0 + 1);
+      const a = (y1 + 1) * stride + (x1 + 1), b = y0 * stride + (x1 + 1);
+      const c = (y1 + 1) * stride + x0, d = y0 * stride + x0;
+      const mean = (sum[a] - sum[b] - sum[c] + sum[d]) / area;
+      const varr = Math.max(0, (sumSq[a] - sumSq[b] - sumSq[c] + sumSq[d]) / area - mean * mean);
+      const T = mean * (1 + k * (Math.sqrt(varr) / R - 1));
+      // Local contrast alone is not enough to call something ink. The printed
+      // guide lines and cell borders are light grey on white — faint to the
+      // eye, but a big LOCAL step, so a purely relative rule happily promotes
+      // them to ink and welds the baseline through every letter. A pen mark
+      // is dark in absolute terms as well as relative ones, so require both.
+      const v = gray[y * W + x];
+      if (v < T && v < inkCeiling) out[y * W + x] = 1;
+    }
+  }
+  return out;
+}
+
 // Morphological open (erode then dilate, 4-connected): erosion drops any ink
 // pixel touching a background neighbor, wiping single-pixel noise and the
 // hairline bridges that fuse it to real strokes, while a solid stroke keeps
@@ -329,12 +387,24 @@ async function scanTemplate(photo, layout, chars, onProgress = () => {}) {
       }
     }
 
-    const T = Math.min(150, mn + 0.45 * (mx - mn));
-    let ink = new Uint8Array(OUT_W * OUT_H);
-    for (let i = 0; i < ink.length; i++) if (cellGray[i] < T) ink[i] = 1;
+    // Window a few stroke-widths across: wide enough to hold both ink and the
+    // paper beside it (so the local mean means something), narrow enough to
+    // track a shadow moving across the box.
+    const win = (Math.max(15, Math.round(OUT_W / 8)) | 1);
+    // Absolute ink ceiling, from this cell's own range. mn is the darkest
+    // pixel (pen), mx the lightest (paper); real pen sits near mn, the printed
+    // guides sit near mx. Anything above 45% of the way from pen to paper is
+    // page furniture, not a mark someone made.
+    const inkCeiling = mn + 0.45 * (mx - mn);
+    let ink = sauvolaInk(cellGray, OUT_W, OUT_H, win, 0.18, inkCeiling);
 
     stripHintBlob(ink, OUT_W, OUT_H, hx0, hy0, hx1, hy1);
-    ink = dilate4(erode4(ink, OUT_W, OUT_H), OUT_W, OUT_H);
+    // The morphological open that used to run here is gone. Erosion strips a
+    // pixel off every edge of every stroke, which erases outright any stroke
+    // only a pixel or two wide — dilation then has nothing to grow back. It
+    // was there to kill speckle, but despeckle() below already does that by
+    // blob area, which is a measure of noise that doesn't also punish a thin
+    // line for being thin.
 
     if (mn > 150) continue;
     const minBlob = Math.max(6, Math.round(0.00035 * OUT_W * OUT_H));

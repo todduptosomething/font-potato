@@ -13,7 +13,7 @@ import { subscribe, sendMessage, submitSpecimen } from './engine/collect.js';
 import { renderSpecimen } from './engine/specimen.js';
 
 const $ = (id) => document.getElementById(id);
-const DEFAULT_PREVIEW = "When did ex-members of the Royal Potato Guild masquerade at Jerky Hill School? After dazzling the friggin' vampires.";
+const DEFAULT_PREVIEW = "When did ex-members of the Royal Potato Guild masquerade at Jerky Hill School? After dazzling 37 friggin' vampires.";
 const state = {
   scan: null,        // primary scan result from the engine
   altScans: [],      // extra filled-in sheets -> real alternates
