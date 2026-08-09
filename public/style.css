@@ -317,6 +317,13 @@ textarea:focus { outline: none; box-shadow: inset 0 0 0 1px var(--line); }
   padding: 16px 22px;
   background: var(--paper); border-top: 1px solid var(--line);
 }
+/* Required, and not obvious: the browser hides [hidden] elements with a
+   `display: none` rule from its own stylesheet, which a class selector like
+   the one above outranks. Without this the bar's `hidden` property flips
+   correctly in the DOM and the bar stays on screen regardless — which is
+   exactly how it shipped, because the test asserted on the property instead
+   of on what was actually rendered. */
+.cookie-bar[hidden] { display: none; }
 .cookie-copy {
   flex: 1 1 320px; margin: 0;
   font-family: var(--caption); font-size: .84rem; line-height: 1.55; color: var(--ink-soft);
