@@ -20,6 +20,11 @@
   font-family: 'Roger Pen'; font-weight: 100 900; font-style: normal; font-display: swap;
   src: url('/fonts/roger-pen.woff2') format('woff2'), url('/fonts/roger-pen.woff') format('woff');
 }
+/* Made in Font Potato, from Todd's own handwriting. */
+@font-face {
+  font-family: 'Todd Swash SC'; font-weight: 100 900; font-style: normal; font-display: swap;
+  src: url('/fonts/todd-swash-sc.woff2') format('woff2'), url('/fonts/todd-swash-sc.woff') format('woff');
+}
 
 :root {
   /* Each theme only sets --ink + --paper; the rest derive from them. */
@@ -39,6 +44,11 @@
   --ok: #2F7A3D;
   --logo: 'Spectral SC', Georgia, serif;
   --head: 'Spectral', Georgia, 'Times New Roman', serif;
+  /* Big type only — the logo and the hero. Split out from --head because a
+     face can be lovely at 30px and illegible at 14px, and the small tracked-out
+     section headings need to be able to opt out of it. Defaults to --head, so
+     a theme that doesn't set it behaves exactly as it did before. */
+  --display: var(--head);
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
   /* Small captions/tips stay on the old sans body face — a serif at caption
      size reads cramped and fussy where Karla stays clean and out of the way. */
@@ -55,7 +65,9 @@
    Spectral small caps, Sweet gets a marker, Yukon a pen. Only --logo and
    --head change — body copy stays Spectral and captions stay Karla in every
    theme, because a display face at paragraph size stops being readable. */
-:root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D; }
+:root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D;
+  --logo: 'Todd Swash SC', 'Spectral SC', Georgia, serif;
+  --display: 'Todd Swash SC', 'Spectral', Georgia, serif; }
 /* Sweet's original pairing (near-white ink #FBF8F7 on orange paper #E48948)
    was only 2.5:1 — well under WCAG AA's 4.5:1. Restored the light ink and
    darkened the orange instead (a burnt-orange/rust, not just a light tint
@@ -155,7 +167,7 @@ body {
 .studio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
 @media (max-width: 860px) { .studio-grid { grid-template-columns: 1fr; } }
 
-.hero-title { font-family: var(--head); font-size: 1.9rem; font-weight: 600; line-height: 1.25; margin: 0 0 14px; }
+.hero-title { font-family: var(--display); font-size: 1.9rem; font-weight: 600; line-height: 1.25; margin: 0 0 14px; }
 /* Recolored via CSS mask (not an <img>) so it always matches the current
    theme's ink color, including on a live theme switch — a masked element's
    "color" is just its background-color, no SVG markup edits needed. Floated
