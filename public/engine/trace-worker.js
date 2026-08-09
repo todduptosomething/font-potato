@@ -6,9 +6,9 @@
 import { traceGlyph } from './traceGlyph.js';
 
 self.onmessage = async (ev) => {
-  const { taskId, cropBlob, cropSize, pad, char, weight, fillIters, smooth, detail } = ev.data;
+  const { taskId, cropBlob, cropSize, pad, char, weight, fillIters, smooth, detail, capRefPx, baselineOffset } = ev.data;
   try {
-    const result = await traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, smooth, detail });
+    const result = await traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, smooth, detail, capRefPx, baselineOffset });
     self.postMessage({ taskId, ok: true, result });
   } catch (err) {
     self.postMessage({ taskId, ok: false, error: (err && err.message) || String(err) });

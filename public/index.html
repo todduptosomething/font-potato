@@ -4,109 +4,225 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Font Potato</title>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-5BETCLFHKE"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-5BETCLFHKE');
+  </script>
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="app-viewport">
   <header class="topbar">
     <div class="brand-block">
-      <div class="brand">Font Potato<span class="beta">beta</span></div>
-      <div class="brand-sub">For lazy-ass handwriting.</div>
+      <button id="brandReset" class="brand" type="button">Font Potato</button>
     </div>
-    <div class="theme">
-      <button id="themeBtn" class="theme-btn" aria-haspopup="true" aria-expanded="false">Theme ▾</button>
-      <div id="themeMenu" class="theme-menu" hidden role="menu">
-        <button data-theme="russet" role="menuitem"><span class="sw" style="background:#FCFBF0;color:#301F1E"></span>Russet</button>
-        <button data-theme="sweet" role="menuitem"><span class="sw" style="background:#E48948;color:#FBF8F7"></span>Sweet</button>
-        <button data-theme="yukon" role="menuitem"><span class="sw" style="background:#E4C155;color:#483C32"></span>Yukon</button>
-      </div>
-    </div>
+    <button id="menuBtn" class="menu-btn" aria-haspopup="true" aria-expanded="false" aria-controls="menuOverlay" aria-label="Menu">
+      <span class="menu-bars" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
   </header>
 
-  <main class="layout">
-    <!-- LEFT: template + scan + letters ----------------------------------->
-    <section class="panel" id="leftPanel">
-      <h2>The template</h2>
-      <p class="lead">Print it, write one letter per box with a dark pen, then photograph the whole sheet — flat, evenly lit, all four corner marks visible. The marks let the app read every letter precisely. It covers all 94 keyboard characters.</p>
+  <main class="wizard" id="wizard">
+    <div class="steps-track" id="stepsTrack">
 
-      <button id="downloadTpl" class="btn solid wide" style="margin-top:0">Download template PDF</button>
+      <!-- STEP 1: welcome ---------------------------------------------------->
+      <section class="step" id="step1">
+        <div class="step-inner">
+          <h1 class="hero-title">Turn your handwriting into a real, installable font</h1>
+          <p class="lead"><span class="hero-figure" role="img" aria-label="Font Potato hand-drawn doodle"></span>Print a sheet. Scribble on it like nobody's watching. Snap a photo. Font Potato mashes every letter and hands you back a font for anywhere fonts go — documents, designs, websites, ransom notes, anything.</p>
+          <ul class="features">
+            <li>All 94 keyboard characters, because nobody wants a font that chokes on a semicolon</li>
+            <li>Alternate characters so repeated letters actually look like handwriting, not a stamp</li>
+            <li>Fine-tune your font with multiple adjustment options</li>
+          </ul>
+          <p class="hero-tagline">Made for the terminally lazy typographer.</p>
+          <button id="getStartedBtn" class="btn solid wide step-cta">Get started</button>
+        </div>
+      </section>
 
-      <h2>Your filled-in sheet</h2>
-      <div id="tplDrop" class="drop">
-        <input id="tplFile" type="file" accept="image/*" hidden />
-        <p><strong>Drop the photo</strong> of your filled template<br />or <button type="button" id="tplBrowse" class="link">browse</button></p>
-        <p class="fine">JPG · PNG · HEIC</p>
-      </div>
-      <button id="scanTplBtn" class="btn solid wide" disabled>Read template</button>
-      <div id="tplStatus" class="status" hidden></div>
+      <!-- STEP 2: capture ----------------------------------------------------->
+      <section class="step" id="step2">
+        <div class="step-inner">
+          <h2>The template</h2>
+          <p class="lead">Print it, write one letter per box with a dark pen, then photograph the whole sheet — flat, evenly lit, all four corner marks visible. The marks let the app read every letter precisely.</p>
 
-      <div id="labelArea" hidden>
-        <h2>Captured</h2>
-        <p class="fine" id="labelHint">Each box maps to its character by position — nothing to fix. Shown only so you can spot a box that scanned badly or came out blank. (Draw any symbol in a box and it becomes that key — so this makes symbol fonts too.)</p>
-        <div id="cropGrid" class="crop-grid"></div>
-      </div>
-    </section>
+          <p class="fine guide-tip"><strong>Template Tip:</strong> Use the baseline to size and place your letters consistently. Don't draw outside the box or your letter won't be scanned completely.</p>
 
-    <!-- RIGHT: studio ----------------------------------------------------->
-    <section class="panel" id="studioPanel" hidden>
-      <h2>Shape the typeface</h2>
-      <label class="field"><span>Font name</span><input id="fontName" type="text" placeholder="Name your font…" required /></label>
+          <div class="guide-row">
+            <figure class="guide">
+              <span class="guide-img guide-img-size" role="img" aria-label="Diagram comparing a letter sized to fit the box against the same letter drawn too large"></span>
+              <div class="guide-labels"><span class="guide-yes">YASS!</span><span class="guide-no">NOOO!</span></div>
+            </figure>
+            <figure class="guide">
+              <span class="guide-img guide-img-bounds" role="img" aria-label="Diagram comparing a letter kept inside the box against one that tilts outside it and gets cut off"></span>
+              <div class="guide-labels"><span class="guide-yes">YASS!</span><span class="guide-no">NOOO!</span></div>
+            </figure>
+          </div>
 
-      <div class="sliders">
-        <label class="ctl"><span>Weight <em id="weightVal">0</em></span><input id="weight" type="range" min="-2" max="2" step="1" value="0" /></label>
-        <label class="ctl"><span>Width <em id="widthVal">Regular</em></span><input id="width" type="range" min="0" max="2" step="1" value="1" /></label>
-        <label class="ctl"><span>Slant <em id="slantVal">0°</em></span><input id="slant" type="range" min="-20" max="20" step="1" value="0" /></label>
-        <label class="ctl"><span>Edge Smoothness <em id="edgeSmoothVal">0.0</em></span><input id="edgeSmooth" type="range" min="0" max="30" step="1" value="0" /></label>
-      </div>
-      <div id="buildStatus" class="status" hidden></div>
+          <button id="downloadTpl" class="btn solid wide" style="margin-top:0">Download template PDF</button>
 
-      <h2>Preview</h2>
-      <div class="preview-tools">
-        <input id="previewText" type="text" value="When did ex-members of the Royal Potato Guild masquerade at Jerky Scoop Mill? After dazzling the friggin' vampires." />
-        <label class="size">Size <input id="previewSize" type="range" min="28" max="140" step="2" value="48" /></label>
-      </div>
-      <div id="previewBox" class="preview-box"><span id="previewSample">Read a template to begin…</span></div>
-      <div id="missingNote" class="fine" hidden></div>
+          <h2>Your filled-in sheet</h2>
+          <div id="tplDrop" class="drop">
+            <input id="tplFile" type="file" accept="image/*" hidden />
+            <p><strong>Drop the photo</strong> of your filled template<br />or <button type="button" id="tplBrowse" class="link">browse</button></p>
+            <p class="fine">JPG · PNG · HEIC</p>
+          </div>
 
-      <h2>Download</h2>
-      <div id="downloads" class="downloads"></div>
+          <div id="altArea">
+            <h2>Alternates</h2>
+            <label class="optin">
+              <input type="checkbox" checked disabled />
+              <span>Automatic — every letter gets a few gentle computer-warped variants, so repeats don't look stamped.</span>
+            </label>
+            <label class="optin">
+              <input type="checkbox" id="manualAlt" />
+              <span>Manual — fill in the same template 1 or 2 more times and Font Potato will use those real shapes as alternates instead of warping.</span>
+            </label>
+            <div id="altSheets" hidden></div>
+          </div>
 
-      <h2>Share</h2>
-      <label class="optin">
-        <input type="checkbox" id="optIn" />
-        <span>Let Font Potato use samples of your font for our gallery and marketing. We make images of sample sentences in your font — never your font file, and never your uploaded photo.</span>
-      </label>
-      <div id="optInStatus" class="fine" style="margin-top:8px"></div>
+          <button id="processBtn" class="btn solid wide step-cta" disabled>Process</button>
+          <div id="processStatus" class="status" hidden></div>
+        </div>
+      </section>
 
-      <p class="fine" style="margin-top:22px">Made something fun with your font — a note, a poster, a doodle? Show us. It might inspire someone else.</p>
-      <textarea id="madeMsg" rows="3" placeholder="Tell us what you made (optional)"></textarea>
-      <div class="made-row">
-        <input id="madeEmail" type="text" placeholder="your email (optional — only if you'd like a reply)" />
-        <label class="btn attach">Attach a photo<input id="madeFile" type="file" accept="image/*" hidden /></label>
-      </div>
-      <div class="made-actions">
-        <button id="madeSendBtn" class="btn solid">Send to Font Potato</button>
-        <span id="madeStatus" class="fine"></span>
-      </div>
-    </section>
+      <!-- STEP 3: studio -------------------------------------------------------->
+      <section class="step" id="step3">
+        <div class="step-inner">
+          <div class="studio-grid">
+
+            <!-- inputs: adjustments + (optional) captured letters -->
+            <div class="studio-col">
+              <h2>Shape the typeface</h2>
+              <label class="field"><span>Font name</span><input id="fontName" type="text" placeholder="Name your font…" required /></label>
+              <div id="nameStatus" class="status" hidden></div>
+              <label class="field"><span>Your name (optional)</span><input id="authorName" type="text" placeholder="Used for the font's copyright" /></label>
+
+              <div class="sliders">
+                <label class="ctl"><span>Weight <em id="weightVal">0</em></span><input id="weight" type="range" min="-2" max="2" step="1" value="0" /></label>
+                <label class="ctl"><span>Width <em id="widthVal">Regular</em></span><input id="width" type="range" min="0" max="2" step="1" value="1" /></label>
+                <label class="ctl"><span>Slant <em id="slantVal">0°</em></span><input id="slant" type="range" min="-20" max="20" step="5" value="0" /></label>
+                <label class="ctl"><span>Edge Smoothness <em id="edgeSmoothVal">0.0</em></span><input id="edgeSmooth" type="range" min="0" max="30" step="1" value="0" /></label>
+              </div>
+              <div id="buildStatus" class="status" hidden></div>
+
+              <details id="labelArea" class="accordion" hidden>
+                <summary>Glyph Scans</summary>
+                <p class="fine" id="labelHint">Each box maps to its character by position. Click one to see it bigger.</p>
+                <div id="cropGrid" class="crop-grid"></div>
+              </details>
+            </div>
+
+            <!-- output: preview + download -->
+            <div class="studio-col">
+              <h2>Preview</h2>
+              <div class="preview-tools">
+                <input id="previewText" type="text" value="When did ex-members of the Royal Potato Guild masquerade at Jerky Hill School? After dazzling the friggin' vampires." />
+                <label class="size">Size <em id="previewSizeVal">30px</em><input id="previewSize" type="range" min="20" max="140" step="2" value="30" /></label>
+              </div>
+              <div id="previewBox" class="preview-box"><span id="previewSample">Reading your template…</span></div>
+              <div id="missingNote" class="fine" hidden></div>
+
+              <h2>Download</h2>
+              <label class="optin" id="specimenOptin" hidden>
+                <input type="checkbox" id="specimenConsent" />
+                <span>Send us a sample of your font (a short phrase rendered in it) so we can see what people are making.</span>
+              </label>
+              <a id="downloadZip" class="btn solid wide" hidden>Download .zip file</a>
+              <p class="fine" id="zipHint" hidden>Includes TTF, WOFF, WOFF2, and CSS.</p>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </div>
   </main>
 
-  <footer class="site-footer">
-    <p class="built">Built by <a href="https://linkedin.com/in/hey-todd-turner" target="_blank" rel="noopener">Todd Turner</a> and <a href="https://claude.ai" target="_blank" rel="noopener">Claude</a></p>
-    <p class="credits">
-      Powered by
-      <a href="https://github.com/danilo-znamerovszkij/draw-your-font" target="_blank" rel="noopener">draw-your-font</a>,
-      <a href="https://potrace.sourceforge.net/" target="_blank" rel="noopener">Potrace</a>,
-      <a href="https://opentype.js.org/" target="_blank" rel="noopener">opentype.js</a>,
-      <a href="https://harfbuzz.github.io/" target="_blank" rel="noopener">HarfBuzz</a>,
-      <a href="https://sharp.pixelplumbing.com/" target="_blank" rel="noopener">sharp</a>, and
-      <a href="https://pdfkit.org/" target="_blank" rel="noopener">PDFKit</a>.
-      Set in <a href="https://fonts.google.com/specimen/Spectral" target="_blank" rel="noopener">Spectral</a>
-      &amp; <a href="https://fonts.google.com/specimen/Karla" target="_blank" rel="noopener">Karla</a>
-      (Open Font License). Your fonts and photos stay on your device.
-    </p>
-  </footer>
+  <nav class="wizard-nav" aria-label="Step navigation">
+    <button id="navBack" class="nav-arrow" aria-label="Previous step">‹</button>
+    <div class="step-dots" id="stepDots">
+      <span class="dot" data-step="1"></span>
+      <span class="dot" data-step="2"></span>
+      <span class="dot" data-step="3"></span>
+    </div>
+    <button id="navFwd" class="nav-arrow" aria-label="Next step">›</button>
+  </nav>
+  </div>
+
+  <div id="menuOverlay" class="menu-overlay" aria-hidden="true">
+    <div class="menu-panel">
+
+      <div class="menu-section">
+        <h3>Theme</h3>
+        <div class="theme-options" id="themeOptions">
+          <button data-theme="russet"><span class="sw" style="background:#FCFBF0;color:#301F1E"></span>Russet</button>
+          <button data-theme="sweet"><span class="sw" style="background:#A85018;color:#FBF8F7"></span>Sweet</button>
+          <button data-theme="yukon"><span class="sw" style="background:#E4C155;color:#483C32"></span>Yukon</button>
+        </div>
+      </div>
+
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h3>Stay in the loop</h3>
+          <p class="fine">Get an email when we ship improvements.</p>
+          <form id="subscribeForm" class="inline-form">
+            <input id="subscribeEmail" type="text" placeholder="you@email.com" />
+            <button type="submit" class="btn solid">Notify me</button>
+          </form>
+          <div id="subscribeStatus" class="fine"></div>
+        </div>
+        <div class="footer-col">
+          <h3>Got feedback?</h3>
+          <p class="fine">Suggestions, bugs, or something you made with your font — a note, a poster, a doodle. We'd love to see it.</p>
+          <div class="field-row">
+            <input id="madeFirstName" type="text" placeholder="First name" />
+            <input id="madeLastName" type="text" placeholder="Last name" />
+          </div>
+          <textarea id="madeMsg" rows="2" placeholder="Tell us what's on your mind" required></textarea>
+          <div class="made-row">
+            <input id="madeEmail" type="text" placeholder="your email" required />
+            <label class="btn attach">Attach a photo<input id="madeFile" type="file" accept="image/*" hidden /></label>
+          </div>
+          <div class="made-actions">
+            <button id="madeSendBtn" class="btn solid">Send</button>
+            <span id="madeStatus" class="fine"></span>
+          </div>
+        </div>
+      </div>
+
+      <p class="built">Built by <a href="https://linkedin.com/in/hey-todd-turner" target="_blank" rel="noopener">Todd Turner</a> and <a href="https://claude.com" target="_blank" rel="noopener">Claude</a></p>
+      <p class="credits">
+        Powered by
+        <a href="https://github.com/danilo-znamerovszkij/draw-your-font" target="_blank" rel="noopener">draw-your-font</a>,
+        <a href="https://potrace.sourceforge.net/" target="_blank" rel="noopener">Potrace</a>,
+        <a href="https://opentype.js.org/" target="_blank" rel="noopener">opentype.js</a>,
+        <a href="https://github.com/strukturag/libheif" target="_blank" rel="noopener">libheif</a>, and
+        <a href="https://pdfkit.org/" target="_blank" rel="noopener">PDFKit</a>.
+        Set in <a href="https://fonts.google.com/specimen/Spectral" target="_blank" rel="noopener">Spectral</a>
+        &amp; <a href="https://fonts.google.com/specimen/Karla" target="_blank" rel="noopener">Karla</a>
+        (Open Font License). Your photo and your font are made on your device and
+        never uploaded — the only thing we ever receive is a sample image, and
+        only if you tick the box asking us to.
+      </p>
+    </div>
+  </div>
+
+  <div id="cropModal" class="crop-modal" hidden>
+    <div class="crop-modal-card">
+      <button id="cropModalClose" class="crop-modal-close" aria-label="Close">×</button>
+      <img id="cropModalImg" src="" alt="" />
+      <div id="cropModalCap" class="crop-modal-cap"></div>
+    </div>
+  </div>
 
   <div id="busy" class="busy" hidden><div class="spinner"></div><span id="busyMsg">Working…</span></div>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

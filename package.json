@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build:vendor": "esbuild build/vendor-entry.js --bundle --minify --platform=browser --format=esm --define:global=window --outfile=public/engine/vendor.js"
+    "build:vendor": "esbuild build/vendor-entry.js --bundle --minify --platform=browser --format=esm --define:global=window --outfile=public/engine/vendor.js",
+    "build:fontpack": "esbuild build/fontpack-entry.js --bundle --minify --platform=browser --format=esm --define:global=window --alias:fs=./build/node-shim.js --alias:path=./build/node-shim.js --alias:crypto=./build/node-shim.js --outfile=public/engine/vendor-fontpack.js",
+    "build:heic": "cp node_modules/libheif-js/libheif-wasm/libheif-bundle.mjs public/engine/vendor-libheif.mjs",
+    "build:all": "npm run build:vendor && npm run build:fontpack && npm run build:woff2 && npm run build:heic",
+    "build:woff2": "sh build/make-woff2-esm.sh"
   },
   "keywords": [
     "handwriting",
@@ -16,18 +20,21 @@
     "draw-your-font"
   ],
   "license": "GPL-2.0-or-later",
-  "description": "Local web studio for turning a photo of your handwriting into a font, with live thickness/slant/width/contrast controls. Wraps the draw-your-font engine.",
+  "description": "Web studio for turning a photo of your handwriting into a font, with live weight/width/slant/smoothness controls. The whole pipeline runs in the browser; the server only serves the page and the printable template.",
   "dependencies": {
     "@fontsource/karla": "^5.3.0",
     "@fontsource/spectral": "^5.3.0",
     "@fontsource/spectral-sc": "^5.3.0",
+    "buffer": "^5.7.1",
     "draw-your-font": "^0.1.0",
     "express": "^5.2.1",
-    "harfbuzzjs": "^1.4.0",
-    "heic-convert": "^2.1.0",
-    "multer": "^2.2.0",
+    "libheif-js": "^1.19.8",
     "opentype.js": "^2.0.0",
-    "sharp": "^0.35.3"
+    "pdfkit": "^0.15.2",
+    "potrace": "^2.1.8",
+    "svgpath": "^2.6.0",
+    "ttf2woff": "^3.0.0",
+    "wawoff2": "^2.0.1"
   },
   "devDependencies": {
     "esbuild": "^0.28.1"

@@ -9,7 +9,8 @@
 // weight + fill-dilate + fill-erode).
 
 import { decodePNGToGray, grayToPNGBlob } from './image.js';
-import { Potrace, Buffer, placeGlyph } from './vendor.js';
+import { Potrace, Buffer } from './vendor.js';
+import { REF_UNITS, LSB, RSB, placeGlyphBaseline, inkProfileFromInk } from './place.js';
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -59,27 +60,49 @@ async function tracePotrace(pngBlob, { smooth, detail }) {
  * @param {{width,height}} cropSize
  * @param {number} pad
  * @param {string} char
- * @param {{weight:number, fillIters:number, smooth:number, detail:number}} opts
- * @returns {Promise<{d:string, advance:number}|null>} placed glyph in em space (pre slant/spacing), or null if trace produced nothing
+ * @param {{weight:number, fillIters:number, smooth:number, detail:number,
+ *          capRefPx:number, baselineOffset:number}} opts
+ * @returns {Promise<{d:string, advance:number, profile:Array}|null>} placed glyph
+ *   in em space (pre slant/spacing), or null if the trace produced nothing
  */
-async function traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, smooth, detail }) {
+async function traceGlyph(cropBlob, cropSize, pad, char, { weight, fillIters, smooth, detail, capRefPx, baselineOffset }) {
   const { data, width, height } = await decodePNGToGray(cropBlob);
-  let ink = new Uint8Array(width * height);
-  for (let i = 0; i < ink.length; i++) ink[i] = data[i] < 128 ? 1 : 0;
 
-  ink = dilateErode(ink, width, height, weight);
-  if (fillIters > 0) {
-    ink = dilateErode(ink, width, height, fillIters);
-    ink = dilateErode(ink, width, height, -fillIters);
+  // Dilation (positive weight) pushes ink up to `weight` px outward in every
+  // direction, but the crop only carries `pad` px of blank margin around the
+  // tight ink bbox. Growing in place eats that margin, and once ink reaches
+  // past it the glyph places wider than its own advance and overlaps its
+  // neighbour. So grow the canvas first — and shift the baseline anchor by
+  // the same amount, since every row moves down with it.
+  const grow = Math.max(0, weight);
+  const W = width + 2 * grow, H = height + 2 * grow;
+  const effPad = pad + grow;
+  const effBaseline = baselineOffset + grow;
+
+  let ink = new Uint8Array(W * H);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[y * width + x] < 128) ink[(y + grow) * W + (x + grow)] = 1;
+    }
   }
 
-  const gray = new Uint8Array(width * height).fill(255);
+  ink = dilateErode(ink, W, H, weight);
+  if (fillIters > 0) {
+    ink = dilateErode(ink, W, H, fillIters);
+    ink = dilateErode(ink, W, H, -fillIters);
+  }
+
+  const gray = new Uint8Array(W * H).fill(255);
   for (let i = 0; i < ink.length; i++) if (ink[i]) gray[i] = 0;
-  const pngBlob = await grayToPNGBlob(gray, width, height);
+  const pngBlob = await grayToPNGBlob(gray, W, H);
 
   const d = await tracePotrace(pngBlob, { smooth, detail });
   if (!d) return null;
-  return placeGlyph(d, cropSize, pad, char, { lsb: 30, rsb: 30 });
+
+  const scale = capRefPx > 0 ? REF_UNITS / capRefPx : 1;
+  const profile = inkProfileFromInk(ink, W, H, scale, effPad, effBaseline);
+  const { d: placed, advance } = placeGlyphBaseline(d, W, effPad, capRefPx, effBaseline, { lsb: LSB, rsb: RSB });
+  return { d: placed, advance, profile };
 }
 
 export { traceGlyph };

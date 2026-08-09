@@ -59,10 +59,14 @@ function terminatePool() {
 
 /**
  * Trace a batch of glyph entries in parallel across the worker pool.
- * @param {Array<{char:string, blob:{blob:Blob, cropSize:Object}, weight:number, fillIters:number, smooth:number, detail:number}>} entries
+ * @param {Array<{char:string, key?:string, blob:{blob:Blob, cropSize:Object}, weight:number, fillIters:number, smooth:number, detail:number}>} entries
+ *   `key` identifies the result in the returned map, defaulting to `char`.
+ *   Manual-alternate sheets contribute a second (third, …) entry for the same
+ *   character, so those pass a distinct key to keep them apart.
  * @param {number} pad
  * @param {(done:number, total:number)=>void} [onProgress]
- * @returns {Promise<Map<string, {d:string, advance:number}>>} char -> placed glyph (pre slant/spacing)
+ * @returns {Promise<Map<string, {d:string, advance:number, profile:Array}>>}
+ *   key -> placed glyph (pre slant/spacing)
  */
 async function traceAll(entries, pad, onProgress) {
   const p = getPool();
@@ -71,14 +75,15 @@ async function traceAll(entries, pad, onProgress) {
     p.run({
       cropBlob: e.blob.blob, cropSize: e.blob.cropSize, pad, char: e.char,
       weight: e.weight, fillIters: e.fillIters, smooth: e.smooth, detail: e.detail,
+      capRefPx: e.capRefPx, baselineOffset: e.blob.baselineOffset,
     }).then((result) => {
       done++;
       if (onProgress) onProgress(done, entries.length);
-      return { char: e.char, result };
+      return { key: e.key || e.char, result };
     })
   ));
   const map = new Map();
-  for (const { char, result } of settled) if (result) map.set(char, result);
+  for (const { key, result } of settled) if (result) map.set(key, result);
   return map;
 }
 

@@ -2,3 +2,12 @@ node_modules/
 workdirs/
 *.log
 .DS_Store
+.env
+
+# local engine-verification artifacts (never ship)
+public/_verify.html
+public/_scan_input.png
+public/_test-upload.heic
+public/_test-upload.jpg
+public/_sheet1.jpg
+public/_sheet2.jpg

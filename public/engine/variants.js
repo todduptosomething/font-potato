@@ -59,6 +59,33 @@ function varyPath(d, advance, char, index, strength) {
     }
   });
 
+  // The stacked rotate/skew/scale/warp above have no idea where the glyph's
+  // own advance width ends — with strength turned up, a variant routinely
+  // paints past the sidebearing margin placeGlyph reserved (30 units either
+  // side) and into the NEXT glyph's box. Since a GSUB-substituted alternate
+  // keeps the base glyph's exact advance (so text reflow stays stable), it
+  // must also keep the base glyph's footprint. Pull the varied outline back
+  // inside that same footprint if it strayed — this is what actually keeps
+  // repeated letters (e.g. a run of "e"s, each cycling a different alt) from
+  // overlapping once real OpenType shaping substitutes them in.
+  const MARGIN = 30;
+  const lo = MARGIN, hi = advance - MARGIN;
+  let minX = Infinity, maxX = -Infinity;
+  svgpath(p.toString()).abs().iterate((seg) => {
+    for (let k = 1; k + 1 < seg.length; k += 2) {
+      minX = Math.min(minX, seg[k]);
+      maxX = Math.max(maxX, seg[k]);
+    }
+  });
+  if (maxX > minX && (minX < lo || maxX > hi)) {
+    const span = maxX - minX;
+    const targetSpan = Math.max(1, hi - lo);
+    const fit = Math.min(1, targetSpan / span);
+    const midX = (minX + maxX) / 2;
+    const targetMid = lo + targetSpan / 2;
+    p = p.translate(-midX, 0).scale(fit, 1).translate(targetMid, 0);
+  }
+
   return p.round(1).toString();
 }
 
