@@ -235,17 +235,29 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 
 /* template guides: size / bounds illustrations (hand-drawn, theme-colored via mask) */
 .guide-tip { margin: 0 0 14px; }
-.guide-row { display: flex; gap: 48px; margin: 0 0 20px; max-width: 520px; }
-.guide { flex: 1 1 0; margin: 0; }
+/* align-items: stretch (the default, stated here because it's load-bearing)
+   makes both figures as tall as the taller one; each figure is then a column
+   whose label row is pushed to the bottom by margin-top: auto. Without that,
+   each label sat a fixed gap under its OWN illustration, and since the two
+   drawings have different aspect ratios they end up different heights — so
+   the four labels landed on two different lines. */
+.guide-row { display: flex; align-items: stretch; gap: 48px; margin: 0 0 20px; max-width: 520px; }
+.guide { flex: 1 1 0; margin: 0; display: flex; flex-direction: column; }
 .guide-img {
   display: block; width: 100%;
   background-color: var(--ink);
+  /* Soaks up the leftover height in the stretched figure, so the shorter
+     drawing sits down against the labels instead of leaving a gap between
+     the two — the boxes' bottom edges line up as well as the labels. */
+  margin-top: auto;
 }
 /* Ratios must match each file's own viewBox, or `contain` letterboxes the
    art inside a box the wrong shape and the figure drifts off-centre. */
 .guide-img-size { aspect-ratio: 1520.72 / 858.17; mask: url('/img/guide-size.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-size.svg') center / contain no-repeat; }
 .guide-img-bounds { aspect-ratio: 1511.9 / 716.34; mask: url('/img/guide-bounds.svg') center / contain no-repeat; -webkit-mask: url('/img/guide-bounds.svg') center / contain no-repeat; }
-.guide-labels { display: flex; margin-top: 4px; }
+/* No margin-top: auto here — the image above already claimed the free space,
+   so the labels sit a fixed gap under it and land on one line. */
+.guide-labels { display: flex; margin-top: 6px; }
 /* The two display faces, used here regardless of theme — the labels are
    shouting, and a marker and a pen shout better than a book serif does.
    Weight stays 400 because both faces are single-weight; asking for bold
