@@ -46,14 +46,16 @@
   /* Every font-size set in the display face is multiplied by this, so each
      theme can compensate for how large its face actually renders at a given
      rem. Todd Slab's caps measure 48% of the em against Spectral's 67%, so
-     1.4 is what restores the optical size the site had before — measured on
-     rendered pixels, not eyeballed. The hero gets a smaller boost: Todd Slab
-     is also typewriter-wide per glyph, and at the full 1.4 the headline
-     wraps from two lines to three and shoves the Get Started button out of
-     the first step's viewport. Russet (and the :root default, which mirrors
+     1.4 would be optical parity with the old Spectral sizes — 1.6 is a
+     deliberate step past parity, because Todd Slab's hairline typewriter
+     strokes read lighter than their cap height and Todd judged parity still
+     too small on the live site. The hero takes a smaller boost: Todd Slab is
+     also typewriter-wide per glyph, and scaling the headline the full amount
+     wraps it to three lines and shoves the Get Started button out of the
+     first step's viewport. Russet (and the :root default, which mirrors
      Russet) sets both. */
-  --display-scale: 1.4;
-  --hero-scale: 1.2;
+  --display-scale: 1.6;
+  --hero-scale: 1.25;
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
   /* Small captions/tips stay on the old sans body face — a serif at caption
      size reads cramped and fussy where Karla stays clean and out of the way. */
@@ -74,8 +76,8 @@
 :root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D;
   --logo: 'Todd Slab', 'Spectral SC', Georgia, serif;
   --head: 'Todd Slab', 'Spectral', Georgia, serif;
-  --display-scale: 1.4;
-  --hero-scale: 1.2; }
+  --display-scale: 1.6;
+  --hero-scale: 1.25; }
 /* Sweet's original pairing (near-white ink #FBF8F7 on orange paper #E48948)
    was only 2.5:1 — well under WCAG AA's 4.5:1. Restored the light ink and
    darkened the orange instead (a burnt-orange/rust, not just a light tint
@@ -193,7 +195,13 @@ body {
 }
 .features { clear: right; margin: 0 0 8px; padding-left: 22px; color: var(--ink-soft); }
 .features li { margin-bottom: 8px; }
-.step-cta { margin-top: 20px; }
+/* 8px, not .btn.wide's 16 (which outranks a bare .step-cta and always has):
+   at --display-scale 1.6 the step-1 content ran 5px past the step on a
+   720px-tall window, clipping Get Started's bottom edge. The CTA's breathing
+   room is the cheapest place to reclaim it — the hero already got trimmed to
+   --hero-scale for the same reason. */
+.btn.wide.step-cta { margin-top: 8px; }
+.step-cta { margin-top: 8px; }
 
 .wizard-nav { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 20px; padding: 14px 0; border-top: 1px solid var(--hair); }
 .nav-arrow { font-family: var(--head); font-size: 1.3rem; line-height: 1; cursor: pointer; background: transparent; border: 1px solid var(--line); border-radius: 50%; width: 38px; height: 38px; padding: 0; color: var(--ink); }
