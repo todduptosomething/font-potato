@@ -56,7 +56,7 @@ const BASELINE_Y_FRAC = 0.74;
 // in the scanner or the font builder reads them, so a glyph is still free to
 // be any height. Kept here purely so both copies of the geometry agree.
 const CAP_Y_FRAC = 0.38;
-const XHEIGHT_Y_FRAC = 0.56;
+const XHEIGHT_Y_FRAC = 0.51;
 
 const LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', ...'abcdefghijklmnopqrstuvwxyz'];
 const DIGITS = [...'0123456789'];
