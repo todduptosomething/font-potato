@@ -13,7 +13,13 @@ const express = require('express');
 const PORT = process.env.PORT || 4321;
 
 const app = express();
-app.use(express.static(path.join(__dirname, 'public')));
+// Dev truth beats dev speed: a cached module worker once kept running old
+// engine code through an edit-reload cycle, which makes every verification
+// suspect. No caching, ever, from this server.
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false, lastModified: false, cacheControl: false,
+  setHeaders: (res) => res.set('Cache-Control', 'no-store'),
+}));
 
 app.listen(PORT, () => {
   console.log(`\n  🥔  Font Potato (dev)`);

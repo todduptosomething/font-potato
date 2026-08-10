@@ -64,35 +64,180 @@ function components(mask, W, H) {
   return out;
 }
 
-function findMarkers(gray, W, H) {
+// Morphological close over the dark mask, box-shaped, via integral image so
+// the radius is free. This exists for one specific input: a printer running
+// low on toner prints the markers as grey squares crossed by white bands
+// where the drum laid nothing down. Each band splits the square into thin
+// wide strips that individually fail the "squarish" test, so the marker
+// vanishes as a candidate. Closing bridges the bands and the square is whole
+// again. Only used on the retry rungs below — a clean photo never pays for it.
+function closeMask(mask, W, H, r) {
+  const stride = W + 1;
+  const I = new Int32Array(stride * (H + 1));
+  const pass = (src, all) => {
+    for (let y = 0; y < H; y++) {
+      let rowSum = 0;
+      for (let x = 0; x < W; x++) {
+        rowSum += src[y * W + x];
+        I[(y + 1) * stride + (x + 1)] = I[y * stride + (x + 1)] + rowSum;
+      }
+    }
+    const out = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - r), y1 = Math.min(H - 1, y + r);
+      for (let x = 0; x < W; x++) {
+        const x0 = Math.max(0, x - r), x1 = Math.min(W - 1, x + r);
+        const sum = I[(y1 + 1) * stride + (x1 + 1)] - I[y0 * stride + (x1 + 1)]
+                  - I[(y1 + 1) * stride + x0] + I[y0 * stride + x0];
+        out[y * W + x] = all ? (sum === (x1 - x0 + 1) * (y1 - y0 + 1) ? 1 : 0) : (sum > 0 ? 1 : 0);
+      }
+    }
+    return out;
+  };
+  return pass(pass(mask, false), true); // dilate, then erode
+}
+
+function markerCandidates(gray, W, H, thr, bridge) {
   const dark = new Uint8Array(W * H);
-  for (let i = 0; i < gray.length; i++) if (gray[i] < 80) dark[i] = 1;
-  const comps = components(dark, W, H);
+  for (let i = 0; i < gray.length; i++) if (gray[i] < thr) dark[i] = 1;
+  const mask = bridge ? closeMask(dark, W, H, Math.max(2, Math.round(0.004 * W))) : dark;
+  const comps = components(mask, W, H);
   const side = 0.049 * W;
-  const cands = comps.filter((c) =>
+  return comps.filter((c) =>
     c.fill > 0.7 &&
     c.w > 0.4 * c.h && c.w < 2.2 * c.h &&
     c.w > side * 0.4 && c.w < side * 2.4 &&
     c.area > (0.02 * W) * (0.02 * W));
-  if (cands.length < 4) return null;
+}
 
-  const corners = [[0, 0], [W, 0], [0, H], [W, H]];
-  const picked = [];
-  const used = new Set();
-  for (const [cxCorner, cyCorner] of corners) {
-    let best = null, bestD = Infinity, bestIdx = -1;
-    cands.forEach((c, idx) => {
-      if (used.has(idx)) return;
-      const d = Math.hypot(c.cx - cxCorner, c.cy - cyCorner);
-      if (d < bestD) { bestD = d; best = c; bestIdx = idx; }
-    });
-    if (!best || bestD > 0.6 * Math.hypot(W, H)) return null;
-    used.add(bestIdx);
-    picked.push([best.cx, best.cy]);
+// Does this quad actually frame a printed template? The template's geometry
+// is a known contract (templategeo.js): every cell carries a printed hint in
+// a known corner, and the strips between the markers are blank paper. Map
+// those positions through the quad's homography and the page answers for
+// itself — hints dark against paper sampled from the blank strips. A quad of
+// four impostors (wood knots, a leopard-print sleeve, a knee) frames random
+// texture, which cannot put dark print at 60+ of 94 specific positions while
+// keeping the reference strips clean. This is what turns "four dark squares
+// in roughly the right places" from a proof into a hypothesis that has to
+// survive testing — the silent shifted-grid failure documented back when
+// lighting correction landed was exactly this class of wrong-quad scan.
+function looksLikeTemplate(gray, W, H, quad, cells) {
+  const map = makeMapper(quad);
+  const at = (u, v) => {
+    const [x, y] = map(u, v);
+    if (x < -0.02 * W || x > 1.02 * W || y < -0.02 * H || y > 1.02 * H) return -1;
+    return sampleGray(gray, W, H, x, y);
+  };
+
+  const blanks = [];
+  for (const v of [0, 1]) {
+    for (const u of [0.2, 0.35, 0.5, 0.65, 0.8]) {
+      const s = at(u, v);
+      if (s >= 0) blanks.push(s);
+    }
   }
-  const [TL, TR, BL, BR] = picked;
-  if (!(TL[0] < TR[0] && BL[0] < BR[0] && TL[1] < BL[1] && TR[1] < BR[1])) return null;
-  return { TL, TR, BL, BR };
+  if (blanks.length < 6) return false; // quad runs off the photo
+  blanks.sort((a, b) => a - b);
+  const paper = blanks[blanks.length >> 1];
+  if (paper < 140) return false; // whatever this frames, it isn't paper
+
+  let hits = 0;
+  for (const cell of cells) {
+    const [u0, v0] = cell.scanUV[0];
+    const [u1, v1] = cell.scanUV[2];
+    const hu0 = u0 + (u1 - u0) * cell.hintFrac.x0, hu1 = u0 + (u1 - u0) * cell.hintFrac.x1;
+    const hv0 = v0 + (v1 - v0) * cell.hintFrac.y0, hv1 = v0 + (v1 - v0) * cell.hintFrac.y1;
+    let mn = 255;
+    for (let sy = 0; sy < 3; sy++) {
+      for (let sx = 0; sx < 4; sx++) {
+        const s = at(hu0 + (hu1 - hu0) * (0.15 + 0.7 * sx / 3), hv0 + (hv1 - hv0) * (0.2 + 0.6 * sy / 2));
+        if (s >= 0 && s < mn) mn = s;
+      }
+    }
+    if (mn < paper - 55) hits++;
+  }
+  return hits >= cells.length * 0.6;
+}
+
+function quadFrom(TLc, TRc, BLc, BRc) {
+  return { TL: [TLc.cx, TLc.cy], TR: [TRc.cx, TRc.cy], BL: [BLc.cx, BLc.cy], BR: [BRc.cx, BRc.cy] };
+}
+
+function quadArea({ TL, TR, BL, BR }) {
+  // shoelace over TL -> TR -> BR -> BL
+  const pts = [TL, TR, BR, BL];
+  let a = 0;
+  for (let i = 0; i < 4; i++) {
+    const [x0, y0] = pts[i], [x1, y1] = pts[(i + 1) % 4];
+    a += x0 * y1 - x1 * y0;
+  }
+  return Math.abs(a) / 2;
+}
+
+// The old detector took the candidate nearest each frame corner and called it
+// a marker — fine when the only dark squares in the photo ARE the markers,
+// silently wrong the moment a busy background offers closer look-alikes.
+// Now every plausible four-set is a hypothesis: hard geometric screens first
+// (ordered like a page, four similar-sized squares, opposite sides balanced,
+// quad big enough that four specks can't qualify), then best-scored first,
+// each must pass looksLikeTemplate before it's believed.
+//
+// The threshold ladder handles the other real-world input, faded toner: the
+// original fixed cutoff of 80 stays as rung one, so a healthy photo takes
+// exactly the old path, and only a photo that would previously have FAILED
+// tries the gentler cutoffs (a low-toner marker prints mid-grey, ~120 after
+// flat-fielding) and the band-bridging close. Every rung's output faces the
+// same content check, so relaxing the cutoff cannot admit a wrong quad — the
+// ladder only widens who gets considered, never who gets believed.
+function findMarkers(gray, W, H, cells) {
+  const corners = [[0, 0], [W, 0], [0, H], [W, H]];
+  const maxD = 0.6 * Math.hypot(W, H);
+
+  // The last rung, 175, exists because fading STACKS with shadow: a low-toner
+  // marker prints at roughly half of paper, and when it also sits in the
+  // photographer's shadow near a flat-field block that saw brighter paper
+  // nearby, its corrected value can crest 145 while still being plainly
+  // visible to a person. Junk floods the mask up here — the shape filters,
+  // quad screens, and content check are what make that affordable.
+  for (const [thr, bridge] of [[80, false], [80, true], [112, false], [112, true], [145, false], [145, true], [175, false], [175, true]]) {
+    const cands = markerCandidates(gray, W, H, thr, bridge);
+    if (cands.length < 4) continue;
+
+    // a few nearest candidates per corner, not just the single nearest
+    const near = corners.map(([cx, cy]) => cands
+      .map((c) => ({ c, d: Math.hypot(c.cx - cx, c.cy - cy) }))
+      .filter((o) => o.d <= maxD)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, 5)
+      .map((o) => o.c));
+    if (near.some((n) => n.length === 0)) continue;
+
+    const tuples = [];
+    for (const TLc of near[0]) for (const TRc of near[1]) for (const BLc of near[2]) for (const BRc of near[3]) {
+      if (TLc === TRc || TLc === BLc || TLc === BRc || TRc === BLc || TRc === BRc || BLc === BRc) continue;
+      const q = quadFrom(TLc, TRc, BLc, BRc);
+      const { TL, TR, BL, BR } = q;
+      if (!(TL[0] < TR[0] && BL[0] < BR[0] && TL[1] < BL[1] && TR[1] < BR[1])) continue;
+      const areas = [TLc.area, TRc.area, BLc.area, BRc.area];
+      const minA = Math.min(...areas), maxA = Math.max(...areas);
+      if (maxA > 4 * minA) continue; // printed markers are the same size
+      const top = Math.hypot(TR[0] - TL[0], TR[1] - TL[1]);
+      const bottom = Math.hypot(BR[0] - BL[0], BR[1] - BL[1]);
+      const left = Math.hypot(BL[0] - TL[0], BL[1] - TL[1]);
+      const right = Math.hypot(BR[0] - TR[0], BR[1] - TR[1]);
+      if (Math.max(top, bottom) > 1.8 * Math.min(top, bottom)) continue;
+      if (Math.max(left, right) > 1.8 * Math.min(left, right)) continue;
+      const area = quadArea(q);
+      if (area < 30 * maxA || area < 0.04 * W * H) continue; // page dwarfs its markers
+      tuples.push({ q, score: (minA / maxA) * area });
+    }
+
+    tuples.sort((a, b) => b.score - a.score);
+    for (const t of tuples.slice(0, 200)) {
+      if (looksLikeTemplate(gray, W, H, t.q, cells)) return t.q;
+    }
+  }
+  return null;
 }
 
 // True perspective transform (homography) from the unit square onto the quad
@@ -432,15 +577,14 @@ async function scanTemplate(photo, layout, chars, onProgress = () => {}) {
   const flat = flattenIllumination(data, W, H);
 
   onProgress({ phase: 'locating' });
-  const markers = findMarkers(flat, W, H);
+  const L = layout(chars);
+  const markers = findMarkers(flat, W, H, L.cells);
   if (!markers) {
-    const err = new Error('Could not find the four black corner markers. Make sure the whole sheet is in frame, flat and evenly lit, with all four corners visible.');
+    const err = new Error('Could not find the four black corner markers. Make sure the whole sheet is in frame, flat and evenly lit, with all four corners visible — and if your printer is running low on toner, the corners may print too faint to see.');
     err.code = 'NO_MARKERS';
     throw err;
   }
   const map = makeMapper(markers);
-
-  const L = layout(chars);
   let cellsDone = 0;
   onProgress({ phase: 'reading', done: 0, total: L.cells.length });
 
