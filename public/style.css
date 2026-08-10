@@ -43,6 +43,17 @@
   --ok: #2F7A3D;
   --logo: 'Todd Slab', 'Spectral SC', Georgia, serif;
   --head: 'Todd Slab', 'Spectral', Georgia, 'Times New Roman', serif;
+  /* Every font-size set in the display face is multiplied by this, so each
+     theme can compensate for how large its face actually renders at a given
+     rem. Todd Slab's caps measure 48% of the em against Spectral's 67%, so
+     1.4 is what restores the optical size the site had before — measured on
+     rendered pixels, not eyeballed. The hero gets a smaller boost: Todd Slab
+     is also typewriter-wide per glyph, and at the full 1.4 the headline
+     wraps from two lines to three and shoves the Get Started button out of
+     the first step's viewport. Russet (and the :root default, which mirrors
+     Russet) sets both. */
+  --display-scale: 1.4;
+  --hero-scale: 1.2;
   --body: 'Spectral', Georgia, 'Times New Roman', serif;
   /* Small captions/tips stay on the old sans body face — a serif at caption
      size reads cramped and fussy where Karla stays clean and out of the way. */
@@ -62,17 +73,23 @@
    also the :root defaults above, since Russet is the default theme. */
 :root[data-theme="russet"] { --ink: #301F1E; --paper: #FCFBF0; --ink-inverted: #FCFBF0; --paper-inverted: #301F1E; --err: #B23A26; --err-inverted: #FF8A75; --ok: #2F7A3D;
   --logo: 'Todd Slab', 'Spectral SC', Georgia, serif;
-  --head: 'Todd Slab', 'Spectral', Georgia, serif; }
+  --head: 'Todd Slab', 'Spectral', Georgia, serif;
+  --display-scale: 1.4;
+  --hero-scale: 1.2; }
 /* Sweet's original pairing (near-white ink #FBF8F7 on orange paper #E48948)
    was only 2.5:1 — well under WCAG AA's 4.5:1. Restored the light ink and
    darkened the orange instead (a burnt-orange/rust, not just a light tint
    down) to reach 5.2:1 — comfortably AA with real margin. */
 :root[data-theme="sweet"]  { --ink: #FBF8F7; --paper: #A85018; --ink-inverted: #A85018; --paper-inverted: #FBF8F7; --err: #FFE6DA; --err-inverted: #B23A26; --ok: #DFF7DA;
   --logo: 'Lilian Marker', 'Spectral SC', Georgia, serif;
-  --head: 'Lilian Marker', 'Spectral', Georgia, serif; }
+  --head: 'Lilian Marker', 'Spectral', Georgia, serif;
+  --display-scale: 1;
+  --hero-scale: 1; }
 :root[data-theme="yukon"]  { --ink: #483C32; --paper: #E4C155; --ink-inverted: #E4C155; --paper-inverted: #483C32; --err: #7A1E14; --err-inverted: #FF8A75; --ok: #1C5426;
   --logo: 'Roger Pen', 'Spectral SC', Georgia, serif;
-  --head: 'Roger Pen', 'Spectral', Georgia, serif; }
+  --head: 'Roger Pen', 'Spectral', Georgia, serif;
+  --display-scale: 1;
+  --hero-scale: 1; }
 
 * { box-sizing: border-box; }
 html { font-size: 18px; }
@@ -91,7 +108,7 @@ body {
 .app-viewport { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
 .topbar { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 14px 40px; border-bottom: 1px solid var(--hair); }
-.brand { font-family: var(--logo); font-size: 1.3rem; font-weight: 600; letter-spacing: .02em; background: transparent; border: none; padding: 0; color: var(--ink); cursor: pointer; }
+.brand { font-family: var(--logo); font-size: calc(1.3rem * var(--display-scale)); font-weight: 600; letter-spacing: .02em; background: transparent; border: none; padding: 0; color: var(--ink); cursor: pointer; }
 
 /* hamburger button: just the bars, no box. It sits ABOVE the overlay
    (z-index) and morphs into the close X in place when open, rather than a
@@ -138,7 +155,7 @@ body {
 .menu-overlay.open { clip-path: circle(150% at var(--menu-origin-x) var(--menu-origin-y)); pointer-events: auto; }
 .menu-panel { position: relative; max-width: 760px; margin: 0 auto; padding: 70px 40px 48px; }
 .menu-section { margin-bottom: 32px; }
-.menu-section h3 { font-family: var(--head); font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; margin: 0 0 12px; }
+.menu-section h3 { font-family: var(--head); font-size: calc(.82rem * var(--display-scale)); font-weight: 600; text-transform: uppercase; letter-spacing: .14em; margin: 0 0 12px; }
 .theme-options { display: flex; gap: 10px; flex-wrap: wrap; }
 .theme-options button { display: flex; align-items: center; gap: 9px; font-family: var(--body); font-size: .92rem; cursor: pointer; background: transparent; color: var(--ink); border: 1px solid var(--line); border-radius: 3px; padding: 9px 14px; }
 .theme-options button:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
@@ -162,7 +179,7 @@ body {
 .studio-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
 @media (max-width: 860px) { .studio-grid { grid-template-columns: 1fr; } }
 
-.hero-title { font-family: var(--head); font-size: 1.9rem; font-weight: 600; line-height: 1.25; margin: 0 0 14px; }
+.hero-title { font-family: var(--head); font-size: calc(1.9rem * var(--hero-scale)); font-weight: 600; line-height: 1.25; margin: 0 0 14px; }
 /* Recolored via CSS mask (not an <img>) so it always matches the current
    theme's ink color, including on a live theme switch — a masked element's
    "color" is just its background-color, no SVG markup edits needed. Floated
@@ -188,7 +205,7 @@ body {
 .dot.active { background: var(--ink); }
 
 h2 {
-  font-family: var(--head); font-size: .9rem; font-weight: 600; text-transform: uppercase; letter-spacing: .16em;
+  font-family: var(--head); font-size: calc(.9rem * var(--display-scale)); font-weight: 600; text-transform: uppercase; letter-spacing: .16em;
   color: var(--ink); margin: 20px 0 10px; padding-bottom: 7px; border-bottom: 1px solid var(--hair);
 }
 /* Scoped to each "column" element's OWN first child — .step-inner for
@@ -208,7 +225,7 @@ h2 {
 .accordion { margin: 20px 0 0; }
 .accordion summary {
   cursor: pointer; list-style: none;
-  font-family: var(--head); font-size: .9rem; font-weight: 600; text-transform: uppercase; letter-spacing: .16em;
+  font-family: var(--head); font-size: calc(.9rem * var(--display-scale)); font-weight: 600; text-transform: uppercase; letter-spacing: .16em;
   color: var(--ink); padding-bottom: 7px; border-bottom: 1px solid var(--hair);
   display: flex; align-items: center; justify-content: space-between;
 }
@@ -310,7 +327,7 @@ input[type=range] { width: 100%; height: 22px; accent-color: var(--ink); }
 .crop-modal[hidden] { display: none; }
 .crop-modal-card { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 30px 36px; display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 88vw; }
 .crop-modal-card img { max-width: 60vw; max-height: 46vh; object-fit: contain; mix-blend-mode: multiply; }
-.crop-modal-cap { font-family: var(--head); font-size: 1.4rem; font-weight: 600; color: var(--ink); }
+.crop-modal-cap { font-family: var(--head); font-size: calc(1.4rem * var(--display-scale)); font-weight: 600; color: var(--ink); }
 .crop-modal-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; font-size: 1.2rem; line-height: 1; }
 .crop-modal-close:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
 
@@ -376,7 +393,7 @@ textarea:focus { outline: none; box-shadow: inset 0 0 0 1px var(--line); }
 /* menu panel: mailing list / feedback grid + byline + credits */
 .footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 32px; }
 @media (max-width: 720px) { .footer-grid { grid-template-columns: 1fr; } }
-.footer-col h3 { font-family: var(--head); font-size: .82rem; font-weight: 600; text-transform: uppercase; letter-spacing: .14em; margin: 0 0 8px; }
+.footer-col h3 { font-family: var(--head); font-size: calc(.82rem * var(--display-scale)); font-weight: 600; text-transform: uppercase; letter-spacing: .14em; margin: 0 0 8px; }
 .inline-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 #subscribeStatus { margin-top: 8px; }
 .menu-panel .built { font-size: .98rem; color: var(--ink); margin: 24px 0 9px; padding-top: 24px; border-top: 1px solid var(--hair); }
